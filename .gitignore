@@ -1,0 +1,20 @@
+# Client / operational data must never be committed
+*.xlsx
+*.csv
+*backup*.json
+APE_Hub_backup_*.json
+APE_Results*.xlsx
+APE_Feedback*.xlsx
+APE_Activity_Log*.xlsx
+APE_Summary*.xlsx
+APE_Demographic*.xlsx
+
+# Local editor / OS files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+
+# Older single-file versions (only index.html is deployed)
+APE_Operations_Hub_v*.html
