@@ -71,4 +71,4 @@ The app is a single file. Changes are listed in [CHANGELOG.md](CHANGELOG.md). Co
 
 ## Contact
 
-Maintainer: [Mickel18]
+Maintainer: [ADD NAME AND EMAIL]
