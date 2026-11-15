@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>APE Operations Hub</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{--bg:#f6f7f9;--fg:#1d2330;--mut:#667085;--card:#fff;--line:#dde1e8;--acc:#5c8f1a;--bad:#c0392b;--ok:#1e8449;--blue:#1f5fbf}
+@media (prefers-color-scheme:dark){:root{--bg:#14171c;--fg:#e6e9ef;--mut:#9aa3b2;--card:#1c2028;--line:#2e3441;--acc:#8cc63f;--bad:#ff7b6b;--ok:#5fd38a;--blue:#6aa3ff}}
+*{box-sizing:border-box}
+body{margin:0;font:14px/1.4 system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--fg)}
+aside{position:fixed;top:0;left:0;bottom:0;width:230px;background:#96C93D;color:#1b2a0a;padding:18px 14px;display:flex;flex-direction:column;gap:16px;overflow-y:auto;z-index:5}
+.brand b{font-size:15px;line-height:1.3}.brand span{font-size:12px}
+aside nav{display:flex;flex-direction:column;gap:6px}
+aside nav button{background:transparent;border:0;color:#1b2a0a;text-align:left;padding:9px 10px;border-radius:6px;cursor:pointer;font:inherit;font-weight:600}
+aside nav button.on,aside nav button:hover{background:#fff}
+.side-tools{margin-top:auto;display:flex;flex-direction:column;gap:8px}
+.side-tools .btn{background:#fff;color:#1b2a0a;border:1px solid #6d9a22;text-align:center}
+main{margin-left:230px;padding:18px;min-width:0;transition:margin-left .2s}
+aside{transition:width .2s}
+.topbar{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+.tog{background:#fff;color:#1b2a0a;border:1px solid #6d9a22;border-radius:6px;padding:2px 8px;cursor:pointer;font:14px system-ui;flex:none}
+aside nav button .ic{display:inline-block;width:22px;text-align:center}
+body.nav-off aside{width:64px;padding:18px 8px;align-items:center}
+body.nav-off main{margin-left:64px}
+body.nav-off .lbl,body.nav-off .brand{display:none}
+body.nav-off .topbar{justify-content:center}
+body.nav-off aside nav button{text-align:center;padding:9px 0}
+body.nav-off aside nav button .ic{width:auto}
+section{display:none}section.on{display:block}
+input,select,textarea{background:var(--card);color:var(--fg);border:1px solid var(--line);border-radius:4px;padding:5px;font:inherit}
+textarea{width:100%;min-height:60px}
+.bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:10px}
+.btn{cursor:pointer;background:var(--acc);color:#fff;border:0;padding:6px 12px;border-radius:5px;font:inherit;display:inline-block}
+.btn.g{background:none;color:var(--fg);border:1px solid var(--line)}
+.wrap{overflow-x:auto;border:1px solid var(--line);border-radius:6px;margin-bottom:14px}
+table{border-collapse:collapse;width:100%;background:var(--card)}
+th,td{border:1px solid var(--line);padding:5px 7px;text-align:left;white-space:nowrap;vertical-align:top}
+th{background:var(--bg)}
+.wrapcell td{white-space:pre-wrap;min-width:140px}
+.hi td{background:rgba(192,57,43,.14)}
+.conflict td{background:rgba(192,57,43,.22)}
+.badge{background:var(--bad);color:#fff;padding:2px 7px;border-radius:4px;font-size:12px;font-weight:700;white-space:nowrap}
+#warn:empty{display:none}
+#warn{background:var(--bad);color:#fff;border-radius:6px;padding:10px 14px;margin-bottom:12px;font-weight:600}
+.ok{color:var(--ok);font-weight:600}.late{color:var(--bad);font-weight:600}.ahead{color:var(--blue);font-weight:600}
+.cards{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:12px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 14px;min-width:150px}
+.card b{font-size:20px;display:block}
+dialog{background:var(--card);color:var(--fg);border:1px solid var(--line);border-radius:8px;max-width:760px;width:92vw}
+dialog::backdrop{background:rgba(0,0,0,.35)}
+.g2{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px;margin:8px 0 16px}
+details{margin:4px 0}summary{cursor:pointer}
+details.m{border:1px solid var(--line);border-radius:6px;padding:8px 12px;margin-bottom:8px;background:var(--card)}
+details.m>summary{font-weight:600}
+small,.mut{color:var(--mut)}
+label{display:flex;gap:6px;align-items:center}
+ul{margin:6px 0;padding-left:18px}
+@media print{aside,.bar,.noprint,button{display:none!important}main{margin-left:0}}
+</style>
+</head>
+<body>
+<aside>
+  <div class="topbar"><div class="brand"><b>Exact Check Diagnostic Center, Inc.</b><br><span>Medical Field Operations</span></div><button class="tog" id="tog" title="Collapse / expand sidebar">◀</button></div>
+  <nav>
+    <button data-t="res" class="on" title="Results Tracker"><span class="ic">📋</span> <span class="lbl">Results Tracker</span></button>
+    <button data-t="dir" title="Client Directory"><span class="ic">👥</span> <span class="lbl">Client Directory</span></button>
+    <button data-t="fb" title="Feedback Analysis"><span class="ic">📊</span> <span class="lbl">Feedback Analysis</span></button>
+    <button data-t="log" title="Activity Log"><span class="ic">🕘</span> <span class="lbl">Activity Log</span></button>
+    <button data-t="set" title="Settings"><span class="ic">⚙</span> <span class="lbl">Settings</span></button>
+  </nav>
+  <div class="side-tools">
+    <button class="btn" id="sv">Save backup (JSON)</button>
+    <label class="btn">Load backup<input type="file" id="ld" accept=".json" hidden></label>
+    <button class="btn" onclick="print()">Print / Save as PDF</button>
+    <small>Auto-saved in this browser. Keep backup files too.</small>
+  </div>
+</aside>
+
+<main>
+<!-- RESULTS TRACKER -->
+<section id="res" class="on">
+
+  <div class="bar">
+    <input type="date" id="f_d" title="APE date">
+    <input id="f_c" list="dl" placeholder="Company (type or pick from directory)">
+    <input type="number" id="f_p" placeholder="Pax" style="width:90px">
+    <select id="f_pkg"></select>
+    <select id="f_q"></select>
+    <input id="f_doc" placeholder="Signing doctor">
+    <select id="f_env"></select>
+    <select id="f_ass"></select>
+    <select id="f_st"></select>
+    <button class="btn" id="add">Add APE</button>
+  </div>
+  <datalist id="dl"></datalist>
+  <div id="warn"></div>
+  <div class="cards" id="rcards"></div>
+  <div class="bar">
+    <input id="rq" placeholder="Search company / doctor" style="min-width:260px">
+    <button class="btn g" id="rx">Download Excel</button>
+  </div>
+  <div class="wrap"><table>
+    <thead><tr><th>APE date</th><th>Company</th><th>Package</th><th>Pax</th><th>Tier</th><th>Expected release</th><th>Status</th><th>Actual release</th><th>On-time</th>
+    <th>LAB due</th><th>LAB actual</th><th>CHEM due</th><th>CHEM actual</th><th>X-RAY due</th><th>X-RAY actual</th><th>ECG due</th><th>ECG actual</th><th>PAP due</th><th>PAP actual</th><th>DT due</th><th>DT actual</th>
+    <th>QC owner</th><th>Signing doctor</th><th>Envelope</th><th>Assessment</th><th>Summary report date</th><th>Demographic report date</th><th>Status log</th><th>Forms received</th><th>Feedback: Excellent</th><th>Feedback: Satisfactory</th><th>Feedback: Needs Improvement</th><th>Feedback tally (per aspect)</th><th></th></tr></thead>
+    <tbody id="rb"></tbody>
+  </table></div>
+</section>
+
+<!-- CLIENT DIRECTORY -->
+<section id="dir">
+  <div class="bar">
+    <label class="btn g">Import CSV<input type="file" id="dimp" accept=".csv" hidden></label>
+    <input id="dq" placeholder="Search any field" style="min-width:240px">
+    <select id="dp"></select>
+    <button class="btn g" id="dx">Download Excel</button>
+    <span id="dc" class="mut"></span>
+  </div>
+  <small>Import the CLIENT sheet as CSV (columns A–F: company, address, contact person, contact details, payment mode, HMO contact). Cells are editable.</small>
+  <details class="m"><summary>Add client manually</summary>
+    <div class="bar">
+      <input id="m_co" placeholder="Company">
+      <input id="m_addr" placeholder="Address">
+      <input id="m_poc" placeholder="Contact person">
+      <input id="m_contact" placeholder="Contact details">
+      <input id="m_pay" placeholder="Payment mode">
+      <input id="m_hmo" placeholder="HMO contact">
+      <button class="btn" id="m_add">Add client</button>
+    </div>
+  </details>
+  <div class="wrap wrapcell" style="margin-top:8px"><table>
+    <thead><tr><th>Company</th><th>Address</th><th>Contact person</th><th>Contact details</th><th>Payment mode</th><th>HMO contact</th><th></th></tr></thead>
+    <tbody id="db"></tbody>
+  </table></div>
+</section>
+
+<!-- FEEDBACK ANALYSIS -->
+<section id="fb">
+  <div class="bar">
+    <label>Reporting month <select id="fm"></select></label>
+    <label>Highlight if % Needs Improvement ≥ <input type="number" id="thr" value="15" style="width:70px">%</label>
+    <button class="btn" id="snap">Save month</button>
+    <button class="btn g" id="fx">Download Excel</button>
+  </div>
+  <div class="cards" id="fc"></div>
+  <div class="wrap"><table>
+    <thead><tr><th>Service aspect</th><th>Excellent</th><th>Satisfactory</th><th>Needs Improvement</th><th>Total</th><th>% Exc</th><th>% Sat</th><th>% NI</th></tr></thead>
+    <tbody id="fbb"></tbody>
+  </table></div>
+  <h3>Demographics of respondents</h3>
+  <div class="bar"><label>Group by <select id="dg"><option value="pkg">Package</option><option value="tier">Pax tier</option><option value="pay">Payment mode (from directory)</option></select></label><small>Pie shows share of feedback forms received.</small></div>
+  <div class="bar" style="align-items:flex-start"><div id="pie"></div><div class="wrap" style="flex:1;min-width:300px"><table id="dt"></table></div></div>
+  <h3>Monthly action plan</h3>
+  <div class="g2">
+    <label style="display:block">Areas to monitor<textarea id="am"></textarea></label>
+    <label style="display:block">Root cause / client concern<textarea id="rcz"></textarea></label>
+    <label style="display:block">Corrective action taken<textarea id="ca"></textarea></label>
+    <label style="display:block">Recommendation for next month<textarea id="rn"></textarea></label>
+    <label style="display:block">Overall status
+      <select id="st2"><option value="">—</option><option>On track</option><option>Monitor</option><option>Action needed</option></select>
+    </label>
+  </div>
+  <h3>APEs by month (auto-logged from Results Tracker)</h3>
+  <div id="mb"></div>
+  <h3>Monthly tracker</h3>
+  <div class="wrap"><table id="mt"></table></div>
+</section>
+
+<!-- ACTIVITY LOG -->
+<section id="log">
+  <div class="bar">
+    <input id="lq" placeholder="Search log" style="min-width:260px">
+    <button class="btn g" id="lx">Download Excel</button>
+    <span id="lc" class="mut"></span>
+  </div>
+  <small>Every change to APEs, feedback, client directory and settings, with date and time. Logs are saved inside the backup file; loading a backup replaces the current log with the backup's log.</small>
+  <div class="wrap" style="margin-top:8px"><table>
+    <thead><tr><th>When</th><th>Action</th><th>Item</th><th>Field</th><th>From</th><th>To</th></tr></thead>
+    <tbody id="lb"></tbody>
+  </table></div>
+</section>
+
+<!-- SETTINGS -->
+<section id="set">
+  <div id="lists"></div>
+</section>
+<dialog id="aspd">
+  <h3 id="aspt" style="margin-top:0"></h3>
+  <div id="aspb"></div>
+  <div class="bar" style="margin-top:12px"><button class="btn" id="aspc">Done</button></div>
+</dialog>
+</main>
+
+<script>
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const P=s=>{const[y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d)};
+const F=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+const disp=s=>s?P(s).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'';
+const fmtT=iso=>new Date(iso).toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit'});
+const pc=(a,b)=>b?(100*a/b).toFixed(1)+'%':'0.0%';
+const tier=p=>p<=50?1:p<=100?2:3;
+const TIERN=['','<50','51-100','>100'];
+const CATS=['lab','chem','xray','ecg','pap','dt'];
+const CATN={lab:'LAB',chem:'CHEM',xray:'X-RAY',ecg:'ECG',pap:'PAP',dt:'DT'};
+const STAGES=['In Process','For QC','On QC','For Signing','For Envelope','Released'];
+const K=['co','addr','poc','contact','pay','hmo'];
+const FIELD_DIR={co:'Company',addr:'Address',poc:'Contact person',contact:'Contact details',pay:'Payment mode',hmo:'HMO contact'};
+const KH=['Company','Address','Contact person','Contact details','Payment mode','HMO contact'];
+const MO=['JANUARY','FEBRUARY','MARCH','APRIL','MAY','JUNE','JULY','AUGUST','SEPTEMBER','OCTOBER','NOVEMBER','DECEMBER'];
+const ASP=['APE Scheduling and Coordination','Organization and Registration Process','Adherence to Agreed APE Arrangements / Process','Courtesy and Professionalism of APE Staff','Courtesy and Professionalism of Attending Physicians','Clarity of Instructions and Communication','Overall Quality of APE Procedures','Waiting Time and Overall Flow','Overall Quality of APE Service'];
+
+// ---------- state (saved/loaded as one backup file) ----------
+const S={
+  pkg:[{name:'APE',tests:{lab:1,chem:1,xray:1,ecg:1,pap:1,dt:1},overall:1},{name:'DT only',tests:{dt:1},overall:0}],
+  ovr:{1:10,2:14,3:21},                       // agreed overall release, working days (>100 uses the 21-day upper bound)
+  tat:{1:{lab:4,chem:7,xray:7,ecg:3,pap:4,dt:5},2:{lab:4,chem:7,xray:7,ecg:7,pap:4,dt:5},3:{lab:6,chem:7,xray:7,ecg:10,pap:6,dt:7}},
+  wd:{lab:0,chem:1,xray:1,ecg:0,pap:0,dt:0},  // per-test: 1 = working days (holidays excluded)
+  hol:[],                                      // holiday dates, ISO yyyy-mm-dd
+  staff:['Ayesh','Claud','Dexter','Jam','Jp','Mac-mac','Mickel','Myrna','Rhoda'],
+  res:[], dir:[], imp:[], audit:[],
+  thr:15, fm:'', fbM:{}, act:{}
+};
+
+// ---------- date logic ----------
+// Working-day add (WORKDAY): skips Sat, Sun and holidays. Calendar-day add for tests not flagged as working days.
+function addW(d,n){const x=new Date(d);let c=0;while(c<n){x.setDate(x.getDate()+1);if(x.getDay()%6&&!S.hol.includes(F(x)))c++}return x}
+function due(r,c){
+  if(!r.date||!r.pax)return'';
+  const n=S.tat[tier(+r.pax)][c], d=P(r.date);
+  return F(S.wd[c]?addW(d,n):new Date(d.getFullYear(),d.getMonth(),d.getDate()+n));
+}
+// Overall expected release from the agreed TAT (working days, holidays excluded)
+const pkgOf=r=>S.pkg.find(p=>p.name===r.pkg)||S.pkg[0]||{tests:{},overall:1};
+const inPkg=(r,c)=>!!pkgOf(r).tests[c];
+// Package with overall TAT: agreed working days. Otherwise: latest included test due date.
+const expOf=r=>{if(!r.date||!r.pax)return'';const p=pkgOf(r);
+  if(p.overall)return F(addW(P(r.date),S.ovr[tier(+r.pax)]));
+  return CATS.filter(c=>p.tests[c]).map(c=>due(r,c)).filter(Boolean).sort().pop()||''};
+const stat=(r,ex)=>!r.act||!ex?'Pending':r.act<ex?'AHEAD':r.act===ex?'ON TIME':'LATE';
+const cls=st=>st==='LATE'?'late':st==='ON TIME'?'ok':st==='AHEAD'?'ahead':'';
+const tcls=(d,a)=>!d||!a?'':a>d?'late':'ok';
+const sel=(opts,val,key,i,ph='—')=>`<select data-k="${key}" data-i="${i}"><option value="">${ph}</option>${opts.map(o=>`<option ${o===val?'selected':''}>${esc(o)}</option>`).join('')}</select>`;
+
+// ---------- results tracker ----------
+const fbT=r=>gridT(r);
+const gridT=r=>{let e=0,s=0,n=0;(r.fb||[]).forEach(x=>{e+=x.e||0;s+=x.s||0;n+=x.n||0});return {e,s,n,t:e+s+n}};
+function fbCells(r,i){const c=fbT(r);
+  const cell=v=>`<td>${v}</td>`;
+  return `<td><input type="number" min="0" value="${r.forms||0}" data-k="forms" data-i="${i}" style="width:70px"></td>`+cell(c.e)+cell(c.s)+cell(c.n)+
+    `<td><button class="btn g" data-asp="${i}">Per aspect (${c.t})</button></td>`;
+}
+
+
+
+function rRes(){
+  save();
+  const q=$('rq').value.toLowerCase();
+  $('rcards').innerHTML=STAGES.map(s=>`<div class="card"><small>${s}</small><b>${S.res.filter(r=>r.st===s).length}</b></div>`).join('');
+  const rows=S.res.map((r,i)=>({r,i})).filter(({r})=>!q||(r.co+' '+r.doc).toLowerCase().includes(q))
+    .sort((a,b)=>(a.r.date||'').localeCompare(b.r.date||''));
+  let conflicts=0;
+  $('rb').innerHTML=rows.map(({r,i})=>{
+    const ex=expOf(r), st=stat(r,ex);
+    // A test due after the overall release means the TAT settings conflict
+    const late=ex&&pkgOf(r).overall?CATS.filter(c=>{const d=due(r,c);return inPkg(r,c)&&d&&d>ex}).map(c=>CATN[c]):[];
+    if(late.length)conflicts++;
+    const tests=CATS.map(c=>{if(!inPkg(r,c))return '<td class="mut">—</td><td class="mut">—</td>';const d=due(r,c),a=(r.ta||{})[c]||'';
+      return `<td>${disp(d)}</td><td class="${tcls(d,a)}"><input type="date" value="${a}" data-i="${i}" data-tc="${c}" class="ta"></td>`}).join('');
+    const badge=late.length?`<br><span class="badge" title="Due after the overall release: ${late.join(', ')}">⚠ TAT CONFLICT: ${late.join(', ')} after release</span>`:'';
+    return `<tr class="${late.length?'conflict':''}"><td>${disp(r.date)}</td><td><input value="${esc(r.co)}" data-k="co" data-i="${i}" style="width:200px"></td><td>${sel(S.pkg.map(p=>p.name),r.pkg,'pkg',i,'')}</td><td>${esc(r.pax)}</td><td>${r.pax?TIERN[tier(+r.pax)]:''}</td>`+
+      `<td><b>${disp(ex)}</b>${badge}</td><td>${sel(STAGES,r.st,'st',i,'')}</td><td><input type="date" value="${r.act||''}" data-k="act" data-i="${i}">${r.st==='Released'&&!r.act?'<br><small class="late">enter release date</small>':''}</td><td class="${cls(st)}">${st}</td>`+
+      tests+
+      `<td>${sel(S.staff,r.qc,'qc',i,'QC owner')}</td>`+
+      `<td><input value="${esc(r.doc)}" data-k="doc" data-i="${i}" style="width:140px"></td>`+
+      `<td>${sel(S.staff,r.env,'env',i,'—')}</td><td>${sel(S.staff,r.ass,'ass',i,'—')}</td><td><input type="date" value="${r.sumDate||''}" data-k="sumDate" data-i="${i}"></td><td><input type="date" value="${r.demDate||''}" data-k="demDate" data-i="${i}"></td>`+
+      `<td><details><summary>${r.log.length} entries</summary>${r.log.map(l=>`<div>${esc(l.st)} — ${fmtT(l.at)}</div>`).join('')}</details></td>`+
+      `${fbCells(r,i)}<td><button class="btn g" data-j="${i}">JSON</button> <button class="btn g" data-del="${i}">✕</button></td></tr>`;
+  }).join('')||'<tr><td colspan="26" class="mut">No APE entries yet. Add one above.</td></tr>';
+  $('warn').innerHTML=conflicts?`⚠ ${conflicts} APE(s) have a test due AFTER the overall expected release. Check the TAT settings and holidays. Highlighted in red below.`:'';
+}
+$('rb').onchange=e=>{
+  const t=e.target;
+  if(t.dataset.cat){const r=S.res[t.dataset.i];r.cat=r.cat||{e:0,s:0,n:0};const old=r.cat[t.dataset.cat];r.cat[t.dataset.cat]=+t.value||0;
+    audit('Feedback totals',apeLabel(r),({e:'Excellent',s:'Satisfactory',n:'Needs Improvement'})[t.dataset.cat],old,r.cat[t.dataset.cat]);rFb();return}
+  if(t.classList.contains('fbin')){const r=S.res[t.dataset.fi];r.fb=r.fb||ASP.map(()=>({e:0,s:0,n:0}));
+    audit('Feedback tally',apeLabel(r),ASP[t.dataset.fa]+' — '+({e:'Excellent',s:'Satisfactory',n:'Needs Improvement'})[t.dataset.fm],r.fb[t.dataset.fa][t.dataset.fm],t.value);r.fb[t.dataset.fa][t.dataset.fm]=+t.value||0;const q=fbT(r),i=t.dataset.fi;
+    rFb();return}
+  if(t.classList.contains('ta')){const r=S.res[t.dataset.i];r.ta=r.ta||{};audit('Test actual date',apeLabel(r),CATN[t.dataset.tc]+' actual',r.ta[t.dataset.tc],t.value);r.ta[t.dataset.tc]=t.value;rRes();rFb();return}
+  const k=t.dataset.k; if(!k)return;
+  const r=S.res[t.dataset.i];
+  if(k==='st'){
+    audit('Status changed',apeLabel(r),'Status',r.st,t.value);r.st=t.value; r.log.push({st:t.value,at:new Date().toISOString()});
+  } else {const old=r[k];r[k]=k==='forms'?(+t.value||0):t.value;if(String(old??'')!==String(r[k]??''))audit('APE updated',apeLabel(r),FIELD[k]||k,old,r[k]);}
+  rRes(); rFb();
+};
+$('rb').onclick=e=>{
+  const t=e.target;
+  if(t.dataset.asp!==undefined){const r=S.res[+t.dataset.asp];
+    $('aspt').textContent='Per-aspect ratings — '+apeLabel(r);
+    const L={e:'Excellent',s:'Satisfactory',n:'Needs Impr.'};
+    $('aspb').innerHTML='<table><thead><tr><th>Service aspect</th><th>Excellent</th><th>Satisfactory</th><th>Needs Impr.</th></tr></thead><tbody>'+
+      ASP.map((a,j)=>`<tr><td>${esc(a)}</td>`+['e','s','n'].map(m=>`<td><input type="number" min="0" value="${(r.fb&&r.fb[j]&&r.fb[j][m])||0}" data-fi="${+t.dataset.asp}" data-fa="${j}" data-fm="${m}" class="fbin" style="width:72px"></td>`).join('')+'</tr>').join('')+
+      '</tbody></table><small class="mut">Each value is the number of ratings for that aspect. Changes are saved as you type.</small>';
+    $('aspd').showModal();return}
+  if(t.dataset.del!==undefined&&confirm('Delete this APE entry?')){audit('APE deleted',apeLabel(S.res[+t.dataset.del]));S.res.splice(+t.dataset.del,1);rRes();rFb()}
+  if(t.dataset.j!==undefined){const r=S.res[+t.dataset.j];dlBlob((r.co||'APE')+'.json',JSON.stringify(r,null,1),'application/json')}
+};
+$('rq').oninput=rRes;
+$('add').onclick=()=>{
+  const r={date:$('f_d').value,co:$('f_c').value.trim(),pax:$('f_p').value,pkg:$('f_pkg').value,st:$('f_st').value,act:'',qc:$('f_q').value,doc:$('f_doc').value.trim(),env:$('f_env').value,ass:$('f_ass').value,ta:{},fb:ASP.map(()=>({e:0,s:0,n:0})),cat:{e:0,s:0,n:0}};
+  if(!r.date||!r.co){alert('APE date and company are required.');return}
+  r.log=[{st:r.st,at:new Date().toISOString()}];
+  S.res.push(r);audit('APE added',apeLabel(r),'',"",r.st);['f_c','f_p','f_doc'].forEach(k=>$(k).value='');rRes();rFb();
+};
+function fillForm(){
+  $('f_q').innerHTML='<option value="">QC owner</option>'+S.staff.map(s=>`<option>${esc(s)}</option>`).join('');
+  $('f_env').innerHTML='<option value="">Envelope</option>'+S.staff.map(s=>`<option>${esc(s)}</option>`).join('');
+  $('f_ass').innerHTML='<option value="">Assessment</option>'+S.staff.map(s=>`<option>${esc(s)}</option>`).join('');
+  $('f_pkg').innerHTML=S.pkg.map(p=>`<option>${esc(p.name)}</option>`).join('');
+  $('f_st').innerHTML=STAGES.map(s=>`<option>${s}</option>`).join('');
+  $('dl').innerHTML=[...new Set(S.dir.map(r=>r.co).filter(Boolean))].map(c=>`<option value="${esc(c)}">`).join('');
+}
+$('rx').onclick=()=>{
+  const rows=S.res.map(r=>{const ex=expOf(r);
+    return [r.date,r.co,r.pkg,r.pax,r.pax?TIERN[tier(+r.pax)]:'',ex,r.st,r.act,stat(r,ex),
+      ...CATS.flatMap(c=>inPkg(r,c)?[due(r,c),(r.ta||{})[c]||'']:['','']),r.qc,r.doc,r.env,r.ass,r.sumDate||'',r.demDate||'']});
+  const logs=[['Company','APE date','Status','Timestamp']];
+  S.res.forEach(r=>r.log.forEach(l=>logs.push([r.co,r.date,l.st,fmtT(l.at)])));
+  xl('APE_Results.xlsx',[['Results',[['APE date','Company','Package','Pax','Tier','Expected','Status','Actual release','On-time',
+    ...CATS.flatMap(c=>[CATN[c]+' due',CATN[c]+' actual']),'QC owner','Signing doctor','Envelope','Assessment','Summary report date','Demographic report date'],...rows]],['Status logs',logs]]);
+};
+
+// ---------- client directory ----------
+function rDir(){
+  save();
+  const q=$('dq').value.toLowerCase(), pf=$('dp').value;
+  const pays=[...new Set(S.dir.map(r=>r.pay).filter(Boolean))].sort();
+  $('dp').innerHTML='<option value="">All payment modes</option>'+pays.map(p=>`<option ${p===pf?'selected':''}>${esc(p)}</option>`).join('');
+  const rows=S.dir.map((r,i)=>({r,i})).filter(({r})=>(!$('dp').value||r.pay===$('dp').value)&&(!q||K.map(k=>r[k]).join(' ').toLowerCase().includes(q)));
+  $('dc').textContent=rows.length+' of '+S.dir.length+' clients';
+  $('db').innerHTML=rows.map(({r,i})=>`<tr>${K.map(k=>`<td contenteditable data-i="${i}" data-k="${k}">${esc(r[k])}</td>`).join('')}<td><button class="btn g" data-dd="${i}">✕</button></td></tr>`).join('');
+}
+$('db').addEventListener('focusin',e=>{if(e.target.dataset.k)e.target.dataset.old=e.target.innerText.trim()});
+$('db').addEventListener('focusout',e=>{const t=e.target;if(t.dataset.k){const nv=t.innerText.trim();if(nv!==t.dataset.old)audit('Client updated',S.dir[t.dataset.i].co,FIELD_DIR[t.dataset.k]||t.dataset.k,t.dataset.old,nv);save()}});
+$('db').addEventListener('input',e=>{const t=e.target;if(t.dataset.k)S.dir[t.dataset.i][t.dataset.k]=t.innerText.trim();save()});
+$('db').onclick=e=>{if(e.target.dataset.dd!==undefined&&confirm('Delete this client?')){audit('Client deleted',S.dir[+e.target.dataset.dd].co);S.dir.splice(+e.target.dataset.dd,1);rDir();fillForm()}};
+$('dq').oninput=rDir;$('dp').onchange=rDir;
+function parseCSV(t){
+  const out=[];let row=[],f='',q=false;
+  for(let i=0;i<t.length;i++){const c=t[i];
+    if(q){if(c=='"'){if(t[i+1]=='"'){f+='"';i++}else q=false}else f+=c}
+    else if(c=='"')q=true;
+    else if(c==','){row.push(f);f=''}
+    else if(c=='\n'||c=='\r'){if(c=='\r'&&t[i+1]=='\n')i++;row.push(f);out.push(row);row=[];f=''}
+    else f+=c;}
+  if(f||row.length){row.push(f);out.push(row)}
+  return out;
+}
+$('dimp').onchange=async e=>{
+  const f=e.target.files[0];if(!f)return;
+  const sid='imp'+Date.now();let n=0;
+  parseCSV(await f.text()).forEach(r=>{const name=(r[0]||'').trim();
+    if(!name||name==='CO. NAME'||name==='SEARCH'||/^\d{4}$/.test(name))return;
+    const o={src:sid};K.forEach((k,j)=>o[k]=(r[j]||'').trim());S.dir.push(o);n++});
+  S.imp.push({id:sid,name:f.name});audit('Directory import',f.name,'clients',0,n);renderSet();
+  alert('Imported '+n+' client rows.');e.target.value='';rDir();fillForm();
+};
+$('m_add').onclick=()=>{
+  const o={src:'manual'};K.forEach(k=>o[k]=$('m_'+k).value.trim());
+  if(!o.co){alert('Company is required.');return}
+  S.dir.push(o);audit('Client added (manual)',o.co);
+  if(!S.imp.some(x=>x.id==='manual'))S.imp.push({id:'manual',name:'Manual entries'});
+  K.forEach(k=>$('m_'+k).value='');rDir();fillForm();renderSet();
+};
+$('dx').onclick=()=>xl('Client_Directory.xlsx',[['Clients',[KH,...S.dir.map(r=>K.map(k=>r[k]))]]]);
+
+// ---------- feedback analysis (automatic from Results Tracker tallies) ----------
+const inM=r=>!S.fm||(r.date&&MO[P(r.date).getMonth()]===S.fm);
+function agg(){
+  const a=ASP.map(n=>({a:n,e:0,s:0,n:0}));
+  S.res.filter(inM).forEach(r=>(r.fb||[]).forEach((x,j)=>{if(a[j]){a[j].e+=x.e||0;a[j].s+=x.s||0;a[j].n+=x.n||0}}));
+  return a;
+}
+function tot(){return S.res.filter(inM).reduce((t,r)=>{const c=fbT(r);return {e:t.e+c.e,s:t.s+c.s,n:t.n+c.n,t:t.t+c.t}},{e:0,s:0,n:0,t:0})}
+function rFb(){
+  save();
+  const A=agg(), T=tot(), thr=S.thr;
+  const picked=S.res.filter(inM), forms=picked.reduce((a,r)=>a+(r.forms||0),0);
+  const coAll=new Set(picked.map(r=>(r.co||'').trim().toLowerCase())).size;
+  const coResp=new Set(picked.filter(r=>(r.forms||0)>0).map(r=>(r.co||'').trim().toLowerCase())).size;
+  $('fc').innerHTML=[['Feedback forms',forms,''],['Companies responded',`${coResp} of ${coAll}`,''],['Total ratings',T.t,''],['Excellent',pc(T.e,T.t),''],['Satisfactory',pc(T.s,T.t),''],['Needs improvement',pc(T.n,T.t),T.t&&100*T.n/T.t>=thr?'late':'']]
+    .map(([l,v,c])=>`<div class="card"><small>${l}</small><b class="${c}">${v}</b></div>`).join('');
+  $('fbb').innerHTML=A.map(r=>{const t=r.e+r.s+r.n;
+    return `<tr class="${t&&100*r.n/t>=thr?'hi':''}"><td>${esc(r.a)}</td><td>${r.e}</td><td>${r.s}</td><td>${r.n}</td><td>${t}</td><td>${pc(r.e,t)}</td><td>${pc(r.s,t)}</td><td>${pc(r.n,t)}</td></tr>`}).join('')+
+    `<tr><th>TOTAL RESPONSES</th><th>${T.e}</th><th>${T.s}</th><th>${T.n}</th><th>${T.t}</th><th>${pc(T.e,T.t)}</th><th>${pc(T.s,T.t)}</th><th>${pc(T.n,T.t)}</th></tr>`;
+  $('mb').innerHTML=MO.map(m=>{
+    const L=S.res.filter(r=>r.date&&MO[P(r.date).getMonth()]===m);
+    const rel=L.filter(r=>r.st==='Released').length;
+    return `<details class="m"><summary>${m} — ${L.length} APE(s), ${rel} released</summary>`+
+      (L.length?`<div class="wrap"><table><thead><tr><th>APE date</th><th>Company</th><th>Pax</th><th>Status</th><th>Expected release</th><th>Released</th><th>On-time</th></tr></thead><tbody>`+
+        L.map(r=>{const ex=expOf(r),st=stat(r,ex);return `<tr><td>${disp(r.date)}</td><td>${esc(r.co)}</td><td>${esc(r.pax)}</td><td>${esc(r.st)}</td><td>${disp(ex)}</td><td>${disp(r.act)}</td><td class="${cls(st)}">${st}</td></tr>`}).join('')+
+        `</tbody></table></div>`:'<small>No APEs logged for this month.</small>')+`</details>`}).join('');
+  $('mt').innerHTML='<thead><tr><th>Month</th><th>Feedback forms</th><th>Companies responded</th><th>Total ratings</th><th>Excellent</th><th>% Exc</th><th>Satisfactory</th><th>% Sat</th><th>Needs impr.</th><th>% NI</th><th>Overall status</th><th>Key action / remarks</th></tr></thead><tbody>'+
+    MO.map(m=>{const x={e:0,s:0,n:0,f:0,co:new Set(),apes:0};
+      S.res.filter(r=>r.date&&MO[P(r.date).getMonth()]===m).forEach(r=>{const q=fbT(r);x.e+=q.e;x.s+=q.s;x.n+=q.n;x.f+=r.forms||0;x.apes++;if(r.forms)x.co.add((r.co||'').trim().toLowerCase())});
+      x.t=x.e+x.s+x.n; const rem=(S.fbM[m]||{}).act||{};
+      if(!x.apes)return `<tr><td>${m}</td>${'<td></td>'.repeat(11)}</tr>`;
+      return `<tr class="${x.t&&100*x.n/x.t>=thr?'hi':''}"><td>${m}</td><td>${x.f}</td><td>${x.co.size}</td><td>${x.t}</td><td>${x.e}</td><td>${pc(x.e,x.t)}</td><td>${x.s}</td><td>${pc(x.s,x.t)}</td><td>${x.n}</td><td>${pc(x.n,x.t)}</td><td>${esc(rem.st)}</td><td>${esc(rem.ca)} ${esc(rem.rn)}</td></tr>`}).join('')+'</tbody>';
+  rDemo();
+}
+const DEMO={pkg:r=>r.pkg||'—',tier:r=>'Pax '+TIERN[tier(+r.pax)],pay:r=>{const d=S.dir.find(x=>(x.co||'').trim().toLowerCase()===(r.co||'').trim().toLowerCase());return (d&&d.pay)||'Not in directory'}};
+const PAL=['#5c8f1a','#1f5fbf','#c0392b','#e6a817','#8e44ad','#16a085','#7f8c8d','#d35400'];
+function pie(items){
+  const tot=items.reduce((a,x)=>a+x.value,0); if(!tot)return '<small class="mut">No data yet</small>';
+  let a0=-Math.PI/2, out='';
+  const X=a=>90+80*Math.cos(a), Y=a=>90+80*Math.sin(a);
+  items.forEach((x,i)=>{const f=x.value/tot,col=PAL[i%PAL.length];
+    if(items.length===1){out+=`<circle cx="90" cy="90" r="80" fill="${col}"><title>${esc(x.label)}: ${x.value}</title></circle>`;return}
+    const a1=a0+f*2*Math.PI;
+    out+=`<path d="M90,90 L${X(a0)},${Y(a0)} A80,80 0 ${f>.5?1:0} 1 ${X(a1)},${Y(a1)} Z" fill="${col}"><title>${esc(x.label)}: ${x.value} (${(f*100).toFixed(1)}%)</title></path>`;
+    a0=a1});
+  return `<svg width="180" height="180" viewBox="0 0 180 180">${out}</svg>`;
+}
+function rDemo(){
+  const f=DEMO[$('dg').value], G={};
+  S.res.filter(inM).filter(r=>(r.forms||0)>0).forEach(r=>{const k=f(r);
+    G[k]=G[k]||{k,forms:0,co:new Set(),e:0,s:0,n:0};const x=G[k];
+    x.forms+=r.forms;x.co.add((r.co||'').trim().toLowerCase());const q=fbT(r);x.e+=q.e;x.s+=q.s;x.n+=q.n});
+  const L=Object.values(G).sort((a,b)=>b.forms-a.forms), total=L.reduce((a,x)=>a+x.forms,0);
+  $('pie').innerHTML=pie(L.map(x=>({label:x.k,value:x.forms})));
+  $('dt').innerHTML='<thead><tr><th>Group</th><th>Forms</th><th>Share</th><th>Companies</th><th>Ratings</th><th>% Exc</th><th>% NI</th></tr></thead><tbody>'+
+    (L.length?L.map((x,i)=>{const t=x.e+x.s+x.n;return `<tr><td><span style="display:inline-block;width:12px;height:12px;background:${PAL[i%PAL.length]};margin-right:6px"></span>${esc(x.k)}</td><td>${x.forms}</td><td>${pc(x.forms,total)}</td><td>${x.co.size}</td><td>${t}</td><td>${pc(x.e,t)}</td><td>${pc(x.n,t)}</td></tr>`}).join('')
+      :'<tr><td class="mut">No feedback forms recorded for this selection.</td></tr>')+'</tbody>';
+}
+$('dg').onchange=rDemo;
+$('thr').onchange=()=>{S.thr=+$('thr').value||15;rFb()};
+$('fm').onchange=e=>{S.fm=e.target.value;rFb()};
+[['am','am'],['rcz','rc'],['ca','ca'],['rn','rn']].forEach(([id,key])=>$(id).oninput=e=>{S.act[key]=e.target.value;save()});
+$('st2').onchange=e=>S.act.st=e.target.value;
+$('snap').onclick=()=>{
+  if(!S.fm){alert('Select the reporting month first.');return}
+  const T=tot();audit('Monthly action plan saved',S.fm,'status','',S.act.st||'');S.fbM[S.fm]={t:T.t,e:T.e,s:T.s,n:T.n,act:{...S.act}};rFb();alert('Saved '+S.fm+'.');
+};
+$('fx').onclick=()=>{
+  const A=agg(),T=tot();
+  const aspects=[['Service aspect','Excellent','Satisfactory','Needs Improvement','Total','% Exc','% Sat','% NI'],
+    ...A.map(r=>{const t=r.e+r.s+r.n;return [r.a,r.e,r.s,r.n,t,pc(r.e,t),pc(r.s,t),pc(r.n,t)]}),
+    ['TOTAL',T.e,T.s,T.n,T.t,pc(T.e,T.t),pc(T.s,T.t),pc(T.n,T.t)]];
+  const apes=[['Month','Company','APE date','Pax','Status','Expected release','Released','Feedback forms','Excellent','Satisfactory','Needs Improvement']];
+  S.res.forEach(r=>{const q=fbT(r);apes.push([r.date?MO[P(r.date).getMonth()]:'',r.co,r.date,r.pax,r.st,expOf(r),r.act,r.forms||0,q.e,q.s,q.n])});
+  xl('APE_Feedback.xlsx',[['Feedback',aspects],['APEs by month',apes]]);
+};
+
+// ---------- settings (each block collapsible) ----------
+function renderSet(){
+  save();
+  const block=(title,body,open=true)=>`<details class="m" ${open?'open':''}><summary>${title}</summary>${body}</details>`;
+  const staffBody=`<ul>${S.staff.map((x,i)=>`<li>${esc(x)} <button class="btn g" data-rm="staff:${i}">✕</button></li>`).join('')}</ul>`+
+    `<input id="in_staff" placeholder="Add person"> <button class="btn" data-add="staff">Add</button>
+     <br><small>Used for QC owner, envelope and assessment.</small>`;
+  const holBody=`<ul>${[...S.hol].sort().map(h=>`<li>${disp(h)} <button class="btn g" data-hrm="${h}">✕</button></li>`).join('')||'<li class="mut">No holidays set</li>'}</ul>`+
+    `<input type="date" id="in_hol"> <button class="btn" data-hadd="1">Add holiday</button>`;
+  const ovrBody=`<table style="width:auto"><thead><tr><th>Pax tier</th><th>Agreed days (working days)</th></tr></thead><tbody>`+
+    [1,2,3].map(t=>`<tr><td>${TIERN[t]}</td><td><input type="number" min="0" value="${S.ovr[t]}" data-ov="${t}" style="width:80px"></td></tr>`).join('')+
+    `</tbody></table><small>Overall expected release = APE date + these working days, Sat/Sun and holidays excluded. For >100 the 14–21 range uses 21 (upper bound); change it here if you use 14.</small>`;
+  const tatBody=`<table><thead><tr><th>Pax tier</th>${CATS.map(c=>`<th>${CATN[c]}</th>`).join('')}</tr></thead><tbody>`+
+    [1,2,3].map(t=>`<tr><td>${TIERN[t]}</td>`+CATS.map(c=>`<td><input type="number" min="0" value="${S.tat[t][c]}" data-t="${t}" data-c="${c}" style="width:64px"></td>`).join('')+'</tr>').join('')+
+    '<tr><td>Working days only</td>'+CATS.map(c=>`<td><input type="checkbox" data-w="${c}" ${S.wd[c]?'checked':''}></td>`).join('')+'</tr></tbody></table>'+
+    `<small>Per-test due dates. Holidays apply only to ticked (working-day) tests.</small>`;
+  const pkgBody=`<table><thead><tr><th>Package</th>${CATS.map(c=>`<th>${CATN[c]}</th>`).join('')}<th>Overall TAT applies</th><th></th></tr></thead><tbody>`+
+    S.pkg.map((p,i)=>`<tr><td><input value="${esc(p.name)}" data-pn="${i}" style="width:120px"></td>`+
+      CATS.map(c=>`<td><input type="checkbox" data-pt="${i}" data-c="${c}" ${p.tests[c]?'checked':''}></td>`).join('')+
+      `<td><input type="checkbox" data-po="${i}" ${p.overall?'checked':''}></td><td><button class="btn g" data-pdel="${i}">✕</button></td></tr>`).join('')+
+    `</tbody></table><input id="in_pkg" placeholder="New package name"> <button class="btn" data-padd="1">Add package</button>`+
+    `<br><small>Ticked tests are included in the package. Overall TAT applies only when ticked; otherwise the expected release is the latest included test date.</small>`;
+  const dirBody=S.imp.length?`<ul>${S.imp.map(x=>`<li>${esc(x.name)} — ${S.dir.filter(r=>r.src===x.id).length} client(s) <button class="btn g" data-dimp="${x.id}">Delete</button></li>`).join('')}</ul>`+
+    `<button class="btn" data-dall="1">Delete all client data</button>`:'<small class="mut">No client data. Import a CSV or add clients manually in the Client Directory.</small>';
+  $('lists').innerHTML=
+    block('Personnel (QC owner, envelope, assessment)',staffBody)+
+    block('Holidays (excluded from working days)',holBody)+
+    block('Packages (tests included &amp; TAT rule)',pkgBody)+
+    block('Client directory data (CSV imports &amp; manual entries)',dirBody)+
+    block('Overall expected release — agreed TAT',ovrBody)+
+    block('Per-test TAT (LAB, CHEM, X-RAY, ECG, PAP, DT)',tatBody,false);
+}
+$('lists').onclick=e=>{const t=e.target;
+  if(t.dataset.padd){const v=$('in_pkg').value.trim();if(v){audit('Settings','Package added',v);S.pkg.push({name:v,tests:{},overall:0});renderSet();fillForm();rRes()}}
+  if(t.dataset.pdel!==undefined){const p=S.pkg[+t.dataset.pdel];
+    if(S.pkg.length>1&&confirm('Delete package "'+p.name+'"? APEs using it will fall back to the first package.')){audit('Settings','Package removed',p.name);S.pkg.splice(+t.dataset.pdel,1);renderSet();fillForm();rRes();rFb()}}
+  if(t.dataset.dimp){const id=t.dataset.dimp,nm=(S.imp.find(x=>x.id===id)||{}).name;
+    if(confirm('Delete all clients from "'+nm+'"? This cannot be undone.')){audit('Client data deleted',nm,'clients',S.dir.filter(r=>r.src===id).length,0);S.dir=S.dir.filter(r=>r.src!==id);S.imp=S.imp.filter(x=>x.id!==id);renderSet();rDir();fillForm()}}
+  if(t.dataset.dall){if(confirm('Delete ALL client directory data? This cannot be undone.')){audit('Client data deleted','All directory data','clients',S.dir.length,0);S.dir=[];S.imp=[];renderSet();rDir();fillForm()}}
+  if(t.dataset.add){const v=$('in_staff').value.trim();if(v){audit('Settings','Personnel added',v);S.staff.push(v);renderSet();fillForm()}}
+  if(t.dataset.rm){const i=+t.dataset.rm.split(':')[1];audit('Settings','Personnel removed',S.staff[i]);S.staff.splice(i,1);renderSet();fillForm()}
+  if(t.dataset.hadd){const v=$('in_hol').value;if(v&&!S.hol.includes(v)){audit('Settings','Holiday added',v);S.hol.push(v);}renderSet();rRes();rFb()}
+  if(t.dataset.hrm!==undefined){audit('Settings','Holiday removed',t.dataset.hrm);S.hol=S.hol.filter(h=>h!==t.dataset.hrm);renderSet();rRes();rFb()}
+};
+$('lists').onchange=e=>{const t=e.target;
+  if(t.dataset.ov){const o=S.ovr[t.dataset.ov];S.ovr[t.dataset.ov]=+t.value||0;audit('Settings','Overall TAT — pax '+TIERN[t.dataset.ov],'working days',o,S.ovr[t.dataset.ov]);}
+  if(t.dataset.t){const o=S.tat[t.dataset.t][t.dataset.c];S.tat[t.dataset.t][t.dataset.c]=+t.value||0;audit('Settings','TAT '+CATN[t.dataset.c]+' — pax '+TIERN[t.dataset.t],'days',o,S.tat[t.dataset.t][t.dataset.c]);}
+  if(t.dataset.w){audit('Settings','Working days only — '+CATN[t.dataset.w],'',!t.checked?'yes':'no',t.checked?'yes':'no');S.wd[t.dataset.w]=t.checked;}
+  if(t.dataset.pn!==undefined){const old=S.pkg[t.dataset.pn].name;S.pkg[t.dataset.pn].name=t.value.trim()||old;
+    S.res.forEach(r=>{if(r.pkg===old)r.pkg=S.pkg[t.dataset.pn].name});fillForm()}
+  if(t.dataset.pt)S.pkg[t.dataset.pt].tests[t.dataset.c]=t.checked?1:0;
+  if(t.dataset.po!==undefined)S.pkg[t.dataset.po].overall=t.checked?1:0;
+  rRes();rFb();
+};
+
+// ---------- shared helpers ----------
+const STORE_KEY='APE_OPERATIONS_HUB_AUTOSAVE';
+function save(){try{localStorage.setItem(STORE_KEY,JSON.stringify(S))}catch(e){}}
+function restore(){try{const d=localStorage.getItem(STORE_KEY);if(d)Object.assign(S,JSON.parse(d))}catch(e){}}
+const FIELD={sumDate:'Summary report date',demDate:'Demographic report date',co:'Company',doc:'Signing doctor',act:'Actual release date',qc:'QC owner',env:'Envelope',ass:'Assessment',forms:'Feedback forms',pkg:'Package'};
+const apeLabel=r=>`${r.co||''} (${r.date||''})`;
+function audit(action,item,field,from,to){
+  S.audit.push({at:new Date().toISOString(),action,item:item||'',field:field||'',from:from==null?'':String(from),to:to==null?'':String(to)});
+}
+function rLog(){
+  const q=$('lq').value.toLowerCase();
+  const rows=S.audit.filter(a=>!q||Object.values(a).join(' ').toLowerCase().includes(q)).slice().reverse();
+  $('lc').textContent=rows.length+' entries';
+  $('lb').innerHTML=rows.slice(0,500).map(a=>`<tr><td>${fmtT(a.at)}</td><td>${esc(a.action)}</td><td>${esc(a.item)}</td><td>${esc(a.field)}</td><td>${esc(a.from)}</td><td>${esc(a.to)}</td></tr>`).join('')||'<tr><td colspan="6" class="mut">No changes logged yet.</td></tr>';
+}
+$('lq').oninput=rLog;
+$('aspd').addEventListener('change',e=>{const t=e.target;if(!t.classList.contains('fbin'))return;
+  const r=S.res[t.dataset.fi];r.fb=r.fb||ASP.map(()=>({e:0,s:0,n:0}));
+  const old=r.fb[t.dataset.fa][t.dataset.fm];r.fb[t.dataset.fa][t.dataset.fm]=+t.value||0;
+  audit('Feedback per aspect',apeLabel(r),ASP[t.dataset.fa]+' — '+({e:'Excellent',s:'Satisfactory',n:'Needs Impr.'})[t.dataset.fm],old,r.fb[t.dataset.fa][t.dataset.fm]);
+  rFb();});
+$('aspc').onclick=()=>$('aspd').close();
+$('aspd').addEventListener('close',()=>{rRes();rFb()});
+$('lx').onclick=()=>xl('APE_Activity_Log.xlsx',[['Activity log',[['When','Action','Item','Field','From','To'],...S.audit.map(a=>[fmtT(a.at),a.action,a.item,a.field,a.from,a.to])]]]);
+function toCsvBlob(rows){return new Blob(['\ufeff'+rows.map(r=>r.map(c=>`"${String(c??'').replace(/"/g,'""')}"`).join(',')).join('\r\n')],{type:'text/csv;charset=utf-8'})}
+function dlBlob(name,text,type){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type}));a.download=name;a.click()}
+// Excel via SheetJS; falls back to CSV if the library cannot load (e.g. offline)
+function xl(name,sheets){
+  if(typeof XLSX==='undefined'){
+    const [,rows]=sheets[0];alert('Excel library unavailable offline; downloading the first sheet as CSV.');
+    const a=document.createElement('a');a.href=URL.createObjectURL(toCsvBlob(rows));a.download=name.replace('.xlsx','.csv');a.click();return;
+  }
+  const wb=XLSX.utils.book_new();
+  sheets.forEach(([n,rows])=>XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(rows),n));
+  XLSX.writeFile(wb,name);
+}
+$('sv').onclick=()=>dlBlob('APE_Hub_backup_'+F(new Date())+'.json',JSON.stringify(S,null,1),'application/json');
+$('ld').onchange=async e=>{const f=e.target.files[0];if(!f)return;
+  try{Object.assign(S,JSON.parse(await f.text()));init();audit('Backup loaded',f.name);alert('Backup loaded.')}catch{alert('That file is not a valid backup.')}
+  e.target.value='';};
+document.querySelectorAll('aside nav button').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('aside nav button').forEach(x=>x.classList.remove('on'));
+  document.querySelectorAll('section').forEach(x=>x.classList.remove('on'));
+  b.classList.add('on');$(b.dataset.t).classList.add('on');if(b.dataset.t==='log')rLog();
+});
+
+$('tog').onclick=()=>{document.body.classList.toggle('nav-off');$('tog').textContent=document.body.classList.contains('nav-off')?'▶':'◀'};
+function init(){
+  S.imp=S.imp||[];
+  S.audit=S.audit||[];
+  S.pkg=S.pkg&&S.pkg.length?S.pkg:[{name:'APE',tests:{lab:1,chem:1,xray:1,ecg:1,pap:1,dt:1},overall:1}];
+  S.res.forEach(r=>{if(!r.pkg)r.pkg=S.pkg[0].name;if(!r.fb)r.fb=ASP.map(()=>({e:0,s:0,n:0}));if(!r.cat){const g=gridT(r);r.cat={e:g.e,s:g.s,n:g.n}}});
+  if(S.dir.some(r=>!r.src)){S.dir.forEach(r=>{if(!r.src)r.src='legacy'});if(!S.imp.some(x=>x.id==='legacy'))S.imp.push({id:'legacy',name:'Earlier import'})}
+  fillForm();
+  $('fm').innerHTML='<option value="">All months</option>'+MO.map(m=>`<option ${m===S.fm?'selected':''}>${m}</option>`).join('');
+  $('thr').value=S.thr;
+  [['am','am'],['rcz','rc'],['ca','ca'],['rn','rn']].forEach(([id,key])=>$(id).value=S.act[key]||'');
+  $('st2').value=S.act.st||'';
+  renderSet();rRes();rDir();rFb();
+}
+restore();
+init();
+</script>
+</body>
+</html>
