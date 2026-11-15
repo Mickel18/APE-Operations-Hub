@@ -40,6 +40,9 @@ th,td{border:1px solid var(--line);padding:5px 7px;text-align:left;white-space:n
 th{background:var(--bg)}
 .wrapcell td{white-space:pre-wrap;min-width:140px}
 .hi td{background:rgba(192,57,43,.14)}
+:root{--rel:#eef7dc}
+@media (prefers-color-scheme:dark){:root{--rel:rgba(140,198,63,.18)}}
+.released td{background:var(--rel)}
 .conflict td{background:rgba(192,57,43,.22)}
 .badge{background:var(--bad);color:#fff;padding:2px 7px;border-radius:4px;font-size:12px;font-weight:700;white-space:nowrap}
 #warn:empty{display:none}
@@ -58,9 +61,34 @@ small,.mut{color:var(--mut)}
 label{display:flex;gap:6px;align-items:center}
 ul{margin:6px 0;padding-left:18px}
 @media print{aside,.bar,.noprint,button{display:none!important}main{margin-left:0}}
+#login{position:fixed;inset:0;background:#96C93D;display:none;align-items:center;justify-content:center;z-index:10;padding:20px}
+body.locked #login{display:flex}
+body.locked aside,body.locked main{display:none}
+#login .card2{background:#fff;color:#1b2a0a;border-radius:12px;padding:32px 28px;width:min(380px,100%);box-shadow:0 10px 30px rgba(0,0,0,.15);text-align:center}
+#login .kicker{font-size:11px;letter-spacing:.6px;color:#4a6b12;font-weight:600}
+#login h2{margin:10px 0 4px;font-size:22px}
+#login p{margin:0 0 18px;color:#475467}
+#gbtn{background:#fff;color:#1b2a0a;border:1px solid #cfd6c8;border-radius:8px;padding:10px 18px;font:600 15px system-ui,sans-serif;cursor:pointer;display:inline-flex;align-items:center;gap:10px;box-shadow:0 1px 2px rgba(0,0,0,.06)}
+#gbtn:hover{background:#f7fbf0}
+#lmsg{color:#b42318;min-height:20px;margin-top:12px;font-size:13px}
+#login small{display:block;margin-top:14px;color:#667085}
+#who,#sync{display:block;word-break:break-all;color:#1b2a0a}
+body.user .adm{display:none}
+body.user [data-t="fb"],body.user [data-t="log"]{display:none}
 </style>
 </head>
-<body>
+<body class="locked">
+<div id="login"><div class="card2">
+  <div class="kicker">EXACT CHECK DIAGNOSTIC CENTER, INC.</div>
+  <h2>Medical Field Operations</h2>
+  <p>APE Operations Hub</p>
+  <button id="gbtn">
+    <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.3 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.3-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-7.9l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.3-.4-3.5z"/></svg>
+    Sign in with Google
+  </button>
+  <div id="lmsg"></div>
+  <small>Authorized staff only.</small>
+</div></div>
 <aside>
   <div class="topbar"><div class="brand"><b>Exact Check Diagnostic Center, Inc.</b><br><span>Medical Field Operations</span></div><button class="tog" id="tog" title="Collapse / expand sidebar">◀</button></div>
   <nav>
@@ -73,8 +101,10 @@ ul{margin:6px 0;padding-left:18px}
   <div class="side-tools">
     <button class="btn" id="sv">Save backup (JSON)</button>
     <label class="btn">Load backup<input type="file" id="ld" accept=".json" hidden></label>
+    <small id="who"></small>
+    <button class="btn" id="signout">Sign out</button>
     <button class="btn" onclick="print()">Print / Save as PDF</button>
-    <small>Auto-saved in this browser. Keep backup files too.</small>
+    <small id="sync"></small>
   </div>
 </aside>
 
@@ -104,7 +134,7 @@ ul{margin:6px 0;padding-left:18px}
   <div class="wrap"><table>
     <thead><tr><th>APE date</th><th>Company</th><th>Package</th><th>Pax</th><th>Tier</th><th>Expected release</th><th>Status</th><th>Actual release</th><th>On-time</th>
     <th>LAB due</th><th>LAB actual</th><th>CHEM due</th><th>CHEM actual</th><th>X-RAY due</th><th>X-RAY actual</th><th>ECG due</th><th>ECG actual</th><th>PAP due</th><th>PAP actual</th><th>DT due</th><th>DT actual</th>
-    <th>QC owner</th><th>Signing doctor</th><th>Envelope</th><th>Assessment</th><th>Summary report date</th><th>Demographic report date</th><th>Status log</th><th>Forms received</th><th>Feedback: Excellent</th><th>Feedback: Satisfactory</th><th>Feedback: Needs Improvement</th><th>Feedback tally (per aspect)</th><th></th></tr></thead>
+    <th>QC owner</th><th>Signing doctor</th><th>Envelope</th><th>Assessment</th><th>Summary report date</th><th>Demographic report date</th><th class="adm">Status log</th><th class="adm">Forms received</th><th class="adm">Feedback: Excellent</th><th class="adm">Feedback: Satisfactory</th><th class="adm">Feedback: Needs Improvement</th><th class="adm">Feedback tally (per aspect)</th><th></th></tr></thead>
     <tbody id="rb"></tbody>
   </table></div>
 </section>
@@ -177,7 +207,7 @@ ul{margin:6px 0;padding-left:18px}
   </div>
   <small>Every change to APEs, feedback, client directory and settings, with date and time. Logs are saved inside the backup file; loading a backup replaces the current log with the backup's log.</small>
   <div class="wrap" style="margin-top:8px"><table>
-    <thead><tr><th>When</th><th>Action</th><th>Item</th><th>Field</th><th>From</th><th>To</th></tr></thead>
+    <thead><tr><th>When</th><th>By</th><th>Action</th><th>Item</th><th>Field</th><th>From</th><th>To</th></tr></thead>
     <tbody id="lb"></tbody>
   </table></div>
 </section>
@@ -193,7 +223,39 @@ ul{margin:6px 0;padding-left:18px}
 </dialog>
 </main>
 
-<script>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/13.3.0/firebase-app.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/13.3.0/firebase-auth.js";
+import { getFirestore, doc, setDoc, onSnapshot, collection, addDoc, query, orderBy } from "https://www.gstatic.com/firebasejs/13.3.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDgggFaPoM_rYjOYbnFnbDvAkoBi5UhI1Q",
+  authDomain: "ape-operations-hub.firebaseapp.com",
+  projectId: "ape-operations-hub",
+  storageBucket: "ape-operations-hub.firebasestorage.app",
+  messagingSenderId: "622477416653",
+  appId: "1:622477416653:web:048c6becb9d1f77c363184",
+  measurementId: "G-223M2N5964"
+};
+// The owner account is always an admin. It must match OWNER_EMAIL in firestore.rules.
+// All other accounts are managed in Settings → Registered users.
+const OWNER_EMAIL = 'owner@company.com';
+
+const fbApp = initializeApp(firebaseConfig);
+const auth = getAuth(fbApp);
+const db = getFirestore(fbApp);
+const STATE_REF = doc(db, 'hub', 'state');
+const ADMIN_REF = doc(db, 'hub', 'admin');   // feedback ratings and forms received: admins only
+let IS_ADMIN = false, ADMAP = {}, lastAdmin = '';
+const ACCESS_REF = doc(db, 'hub', 'access');  // registered users: { admins: [...], users: [...] }
+let ACCESS = {admins: [], users: []}, CURRENT_EMAIL = '', accessUnsub = null, LAST_ROLE = null;
+const AUD_COL = collection(db, 'audit');
+let AUD = [];
+let lastSaved = '', synced = false, saveTimer = null;
+// Stable JSON (sorted keys) so that identical data is never written twice
+const canon = v => JSON.stringify(v, (k, x) => (x && typeof x === 'object' && !Array.isArray(x))
+  ? Object.keys(x).sort().reduce((o, kk) => (o[kk] = x[kk], o), {}) : x);
+
 const $=id=>document.getElementById(id);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const P=s=>{const[y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d)};
@@ -248,9 +310,9 @@ const sel=(opts,val,key,i,ph='—')=>`<select data-k="${key}" data-i="${i}"><opt
 const fbT=r=>gridT(r);
 const gridT=r=>{let e=0,s=0,n=0;(r.fb||[]).forEach(x=>{e+=x.e||0;s+=x.s||0;n+=x.n||0});return {e,s,n,t:e+s+n}};
 function fbCells(r,i){const c=fbT(r);
-  const cell=v=>`<td>${v}</td>`;
-  return `<td><input type="number" min="0" value="${r.forms||0}" data-k="forms" data-i="${i}" style="width:70px"></td>`+cell(c.e)+cell(c.s)+cell(c.n)+
-    `<td><button class="btn g" data-asp="${i}">Per aspect (${c.t})</button></td>`;
+  const cell=v=>`<td class="adm">${v}</td>`;
+  return `<td class="adm"><input type="number" min="0" value="${r.forms||0}" data-k="forms" data-i="${i}" style="width:70px"></td>`+cell(c.e)+cell(c.s)+cell(c.n)+
+    `<td class="adm"><button class="btn g" data-asp="${i}">Per aspect (${c.t})</button></td>`;
 }
 
 
@@ -270,13 +332,13 @@ function rRes(){
     const tests=CATS.map(c=>{if(!inPkg(r,c))return '<td class="mut">—</td><td class="mut">—</td>';const d=due(r,c),a=(r.ta||{})[c]||'';
       return `<td>${disp(d)}</td><td class="${tcls(d,a)}"><input type="date" value="${a}" data-i="${i}" data-tc="${c}" class="ta"></td>`}).join('');
     const badge=late.length?`<br><span class="badge" title="Due after the overall release: ${late.join(', ')}">⚠ TAT CONFLICT: ${late.join(', ')} after release</span>`:'';
-    return `<tr class="${late.length?'conflict':''}"><td>${disp(r.date)}</td><td><input value="${esc(r.co)}" data-k="co" data-i="${i}" style="width:200px"></td><td>${sel(S.pkg.map(p=>p.name),r.pkg,'pkg',i,'')}</td><td>${esc(r.pax)}</td><td>${r.pax?TIERN[tier(+r.pax)]:''}</td>`+
+    return `<tr class="${r.st==='Released'?'released ':''}${late.length?'conflict':''}"><td>${disp(r.date)}</td><td><input value="${esc(r.co)}" data-k="co" data-i="${i}" style="width:200px"></td><td>${sel(S.pkg.map(p=>p.name),r.pkg,'pkg',i,'')}</td><td>${esc(r.pax)}</td><td>${r.pax?TIERN[tier(+r.pax)]:''}</td>`+
       `<td><b>${disp(ex)}</b>${badge}</td><td>${sel(STAGES,r.st,'st',i,'')}</td><td><input type="date" value="${r.act||''}" data-k="act" data-i="${i}">${r.st==='Released'&&!r.act?'<br><small class="late">enter release date</small>':''}</td><td class="${cls(st)}">${st}</td>`+
       tests+
       `<td>${sel(S.staff,r.qc,'qc',i,'QC owner')}</td>`+
       `<td><input value="${esc(r.doc)}" data-k="doc" data-i="${i}" style="width:140px"></td>`+
       `<td>${sel(S.staff,r.env,'env',i,'—')}</td><td>${sel(S.staff,r.ass,'ass',i,'—')}</td><td><input type="date" value="${r.sumDate||''}" data-k="sumDate" data-i="${i}"></td><td><input type="date" value="${r.demDate||''}" data-k="demDate" data-i="${i}"></td>`+
-      `<td><details><summary>${r.log.length} entries</summary>${r.log.map(l=>`<div>${esc(l.st)} — ${fmtT(l.at)}</div>`).join('')}</details></td>`+
+      `<td class="adm"><details><summary>${r.log.length} entries</summary>${r.log.map(l=>`<div>${esc(l.st)} — ${fmtT(l.at)}</div>`).join('')}</details></td>`+
       `${fbCells(r,i)}<td><button class="btn g" data-j="${i}">JSON</button> <button class="btn g" data-del="${i}">✕</button></td></tr>`;
   }).join('')||'<tr><td colspan="26" class="mut">No APE entries yet. Add one above.</td></tr>';
   $('warn').innerHTML=conflicts?`⚠ ${conflicts} APE(s) have a test due AFTER the overall expected release. Check the TAT settings and holidays. Highlighted in red below.`:'';
@@ -310,7 +372,7 @@ $('rb').onclick=e=>{
 };
 $('rq').oninput=rRes;
 $('add').onclick=()=>{
-  const r={date:$('f_d').value,co:$('f_c').value.trim(),pax:$('f_p').value,pkg:$('f_pkg').value,st:$('f_st').value,act:'',qc:$('f_q').value,doc:$('f_doc').value.trim(),env:$('f_env').value,ass:$('f_ass').value,ta:{},fb:ASP.map(()=>({e:0,s:0,n:0})),cat:{e:0,s:0,n:0}};
+  const r={id:newId(),date:$('f_d').value,co:$('f_c').value.trim(),pax:$('f_p').value,pkg:$('f_pkg').value,st:$('f_st').value,act:'',qc:$('f_q').value,doc:$('f_doc').value.trim(),env:$('f_env').value,ass:$('f_ass').value,ta:{},fb:ASP.map(()=>({e:0,s:0,n:0})),cat:{e:0,s:0,n:0}};
   if(!r.date||!r.co){alert('APE date and company are required.');return}
   r.log=[{st:r.st,at:new Date().toISOString()}];
   S.res.push(r);audit('APE added',apeLabel(r),'',"",r.st);['f_c','f_p','f_doc'].forEach(k=>$(k).value='');rRes();rFb();
@@ -478,15 +540,30 @@ function renderSet(){
     `<br><small>Ticked tests are included in the package. Overall TAT applies only when ticked; otherwise the expected release is the latest included test date.</small>`;
   const dirBody=S.imp.length?`<ul>${S.imp.map(x=>`<li>${esc(x.name)} — ${S.dir.filter(r=>r.src===x.id).length} client(s) <button class="btn g" data-dimp="${x.id}">Delete</button></li>`).join('')}</ul>`+
     `<button class="btn" data-dall="1">Delete all client data</button>`:'<small class="mut">No client data. Import a CSV or add clients manually in the Client Directory.</small>';
+  const accRows=[{e:OWNER_EMAIL,role:'admin',owner:true},...ACCESS.admins.map(e=>({e,role:'admin'})),...ACCESS.users.map(e=>({e,role:'user'}))];
+  const accBody=`<table><thead><tr><th>Google account</th><th>Role</th><th></th></tr></thead><tbody>`+
+    accRows.map(x=>`<tr><td>${esc(x.e)}${x.owner?' <small class="mut">(owner, always admin)</small>':''}</td><td>${x.owner?'Admin':
+      `<select data-acc-role="${esc(x.e)}"><option value="admin" ${x.role==='admin'?'selected':''}>Admin</option><option value="user" ${x.role==='user'?'selected':''}>User</option></select>`}</td>`+
+      `<td>${x.owner?'':`<button class="btn g" data-acc-del="${esc(x.e)}">Remove</button>`}</td></tr>`).join('')+
+    `</tbody></table><div class="bar" style="margin-top:8px"><input id="acc_email" placeholder="Google account email" style="min-width:260px">`+
+    `<select id="acc_role"><option value="user">User</option><option value="admin">Admin</option></select> <button class="btn" data-acc-add="1">Add account</button></div>`+
+    `<small>The person must sign in with exactly this Google email. Admins see every tab and all settings. Users see the Results Tracker up to the Demographic report date, plus personnel and holidays.</small>`;
   $('lists').innerHTML=
+    (IS_ADMIN?block('Registered users (access)',accBody):'')+
     block('Personnel (QC owner, envelope, assessment)',staffBody)+
     block('Holidays (excluded from working days)',holBody)+
-    block('Packages (tests included &amp; TAT rule)',pkgBody)+
-    block('Client directory data (CSV imports &amp; manual entries)',dirBody)+
-    block('Overall expected release — agreed TAT',ovrBody)+
-    block('Per-test TAT (LAB, CHEM, X-RAY, ECG, PAP, DT)',tatBody,false);
+    (IS_ADMIN?block('Packages (tests included &amp; TAT rule)',pkgBody)+
+      block('Client directory data (CSV imports &amp; manual entries)',dirBody)+
+      block('Overall expected release — agreed TAT',ovrBody)+
+      block('Per-test TAT (LAB, CHEM, X-RAY, ECG, PAP, DT)',tatBody,false):'');
 }
 $('lists').onclick=e=>{const t=e.target;
+  if(t.dataset.accAdd){const em=$('acc_email').value.trim().toLowerCase(),role=$('acc_role').value;
+    if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)){alert('Enter a valid email address.');return}
+    if(roleFor(em)){alert('This account is already registered.');return}
+    (role==='admin'?ACCESS.admins:ACCESS.users).push(em);saveAccess('Added '+em+' as '+role);return}
+  if(t.dataset.accDel!==undefined){const em=t.dataset.accDel;
+    if(confirm('Remove access for '+em+'?')){ACCESS.admins=ACCESS.admins.filter(x=>x!==em);ACCESS.users=ACCESS.users.filter(x=>x!==em);saveAccess('Removed '+em)}return}
   if(t.dataset.padd){const v=$('in_pkg').value.trim();if(v){audit('Settings','Package added',v);S.pkg.push({name:v,tests:{},overall:0});renderSet();fillForm();rRes()}}
   if(t.dataset.pdel!==undefined){const p=S.pkg[+t.dataset.pdel];
     if(S.pkg.length>1&&confirm('Delete package "'+p.name+'"? APEs using it will fall back to the first package.')){audit('Settings','Package removed',p.name);S.pkg.splice(+t.dataset.pdel,1);renderSet();fillForm();rRes();rFb()}}
@@ -499,6 +576,9 @@ $('lists').onclick=e=>{const t=e.target;
   if(t.dataset.hrm!==undefined){audit('Settings','Holiday removed',t.dataset.hrm);S.hol=S.hol.filter(h=>h!==t.dataset.hrm);renderSet();rRes();rFb()}
 };
 $('lists').onchange=e=>{const t=e.target;
+  if(t.dataset.accRole){const em=t.dataset.accRole,role=t.value;
+    ACCESS.admins=ACCESS.admins.filter(x=>x!==em);ACCESS.users=ACCESS.users.filter(x=>x!==em);
+    (role==='admin'?ACCESS.admins:ACCESS.users).push(em);saveAccess('Changed '+em+' to '+role);return}
   if(t.dataset.ov){const o=S.ovr[t.dataset.ov];S.ovr[t.dataset.ov]=+t.value||0;audit('Settings','Overall TAT — pax '+TIERN[t.dataset.ov],'working days',o,S.ovr[t.dataset.ov]);}
   if(t.dataset.t){const o=S.tat[t.dataset.t][t.dataset.c];S.tat[t.dataset.t][t.dataset.c]=+t.value||0;audit('Settings','TAT '+CATN[t.dataset.c]+' — pax '+TIERN[t.dataset.t],'days',o,S.tat[t.dataset.t][t.dataset.c]);}
   if(t.dataset.w){audit('Settings','Working days only — '+CATN[t.dataset.w],'',!t.checked?'yes':'no',t.checked?'yes':'no');S.wd[t.dataset.w]=t.checked;}
@@ -510,19 +590,35 @@ $('lists').onchange=e=>{const t=e.target;
 };
 
 // ---------- shared helpers ----------
-const STORE_KEY='APE_OPERATIONS_HUB_AUTOSAVE';
-function save(){try{localStorage.setItem(STORE_KEY,JSON.stringify(S))}catch(e){}}
-function restore(){try{const d=localStorage.getItem(STORE_KEY);if(d)Object.assign(S,JSON.parse(d))}catch(e){}}
+// Saves the working data to Cloud Firestore (debounced). Never saves before the server copy has loaded.
+const newId=()=>Math.random().toString(36).slice(2,10)+Date.now().toString(36);
+// Feedback ratings and forms received live in hub/admin; they are merged back into each APE on load
+function applyAdmin(){S.res.forEach(r=>{const a=ADMAP[r.id];if(a){r.fb=a.fb||[];r.forms=a.forms||0}})}
+function save(){clearTimeout(saveTimer);saveTimer=setTimeout(()=>{
+  if(!synced||document.body.classList.contains('locked'))return;
+  const {audit,...rest}=S;
+  const stateTxt=canon({...rest,res:S.res.map(({fb,forms,...x})=>x)});
+  if(stateTxt!==lastSaved){lastSaved=stateTxt;
+    setDoc(STATE_REF,JSON.parse(stateTxt)).then(()=>{$('sync').textContent='Saved '+new Date().toLocaleTimeString()})
+      .catch(e=>{$('sync').textContent='Save failed: '+(e.code||e.message)})}
+  if(IS_ADMIN){
+    const admTxt=canon({items:S.res.map(r=>({id:r.id,fb:r.fb||[],forms:r.forms||0}))});
+    if(admTxt!==lastAdmin){lastAdmin=admTxt;
+      setDoc(ADMIN_REF,JSON.parse(admTxt)).then(()=>{$('sync').textContent='Saved '+new Date().toLocaleTimeString()})
+        .catch(e=>{$('sync').textContent='Feedback save failed: '+(e.code||e.message)})}
+  }
+},400)}
 const FIELD={sumDate:'Summary report date',demDate:'Demographic report date',co:'Company',doc:'Signing doctor',act:'Actual release date',qc:'QC owner',env:'Envelope',ass:'Assessment',forms:'Feedback forms',pkg:'Package'};
 const apeLabel=r=>`${r.co||''} (${r.date||''})`;
 function audit(action,item,field,from,to){
-  S.audit.push({at:new Date().toISOString(),action,item:item||'',field:field||'',from:from==null?'':String(from),to:to==null?'':String(to)});
+  addDoc(AUD_COL,{at:new Date().toISOString(),action,item:item||'',field:field||'',from:from==null?'':String(from),to:to==null?'':String(to),by:(auth.currentUser&&auth.currentUser.email)||''})
+    .catch(e=>{$('sync').textContent='Log save failed: '+(e.code||e.message)});
 }
 function rLog(){
   const q=$('lq').value.toLowerCase();
-  const rows=S.audit.filter(a=>!q||Object.values(a).join(' ').toLowerCase().includes(q)).slice().reverse();
+  const rows=AUD.filter(a=>!q||Object.values(a).join(' ').toLowerCase().includes(q)).slice().reverse();
   $('lc').textContent=rows.length+' entries';
-  $('lb').innerHTML=rows.slice(0,500).map(a=>`<tr><td>${fmtT(a.at)}</td><td>${esc(a.action)}</td><td>${esc(a.item)}</td><td>${esc(a.field)}</td><td>${esc(a.from)}</td><td>${esc(a.to)}</td></tr>`).join('')||'<tr><td colspan="6" class="mut">No changes logged yet.</td></tr>';
+  $('lb').innerHTML=rows.slice(0,500).map(a=>`<tr><td>${fmtT(a.at)}</td><td>${esc(a.by||'')}</td><td>${esc(a.action)}</td><td>${esc(a.item)}</td><td>${esc(a.field)}</td><td>${esc(a.from)}</td><td>${esc(a.to)}</td></tr>`).join('')||'<tr><td colspan="7" class="mut">No changes logged yet.</td></tr>';
 }
 $('lq').oninput=rLog;
 $('aspd').addEventListener('change',e=>{const t=e.target;if(!t.classList.contains('fbin'))return;
@@ -532,7 +628,7 @@ $('aspd').addEventListener('change',e=>{const t=e.target;if(!t.classList.contain
   rFb();});
 $('aspc').onclick=()=>$('aspd').close();
 $('aspd').addEventListener('close',()=>{rRes();rFb()});
-$('lx').onclick=()=>xl('APE_Activity_Log.xlsx',[['Activity log',[['When','Action','Item','Field','From','To'],...S.audit.map(a=>[fmtT(a.at),a.action,a.item,a.field,a.from,a.to])]]]);
+$('lx').onclick=()=>xl('APE_Activity_Log.xlsx',[['Activity log',[['When','By','Action','Item','Field','From','To'],...AUD.map(a=>[fmtT(a.at),a.by||'',a.action,a.item,a.field,a.from,a.to])]]]);
 function toCsvBlob(rows){return new Blob(['\ufeff'+rows.map(r=>r.map(c=>`"${String(c??'').replace(/"/g,'""')}"`).join(',')).join('\r\n')],{type:'text/csv;charset=utf-8'})}
 function dlBlob(name,text,type){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type}));a.download=name;a.click()}
 // Excel via SheetJS; falls back to CSV if the library cannot load (e.g. offline)
@@ -560,7 +656,7 @@ function init(){
   S.imp=S.imp||[];
   S.audit=S.audit||[];
   S.pkg=S.pkg&&S.pkg.length?S.pkg:[{name:'APE',tests:{lab:1,chem:1,xray:1,ecg:1,pap:1,dt:1},overall:1}];
-  S.res.forEach(r=>{if(!r.pkg)r.pkg=S.pkg[0].name;if(!r.fb)r.fb=ASP.map(()=>({e:0,s:0,n:0}));if(!r.cat){const g=gridT(r);r.cat={e:g.e,s:g.s,n:g.n}}});
+  S.res.forEach(r=>{if(!r.id)r.id=newId();if(!r.log)r.log=[];if(!r.pkg)r.pkg=S.pkg[0].name;if(!r.fb)r.fb=ASP.map(()=>({e:0,s:0,n:0}));if(!r.cat){const g=gridT(r);r.cat={e:g.e,s:g.s,n:g.n}}});
   if(S.dir.some(r=>!r.src)){S.dir.forEach(r=>{if(!r.src)r.src='legacy'});if(!S.imp.some(x=>x.id==='legacy'))S.imp.push({id:'legacy',name:'Earlier import'})}
   fillForm();
   $('fm').innerHTML='<option value="">All months</option>'+MO.map(m=>`<option ${m===S.fm?'selected':''}>${m}</option>`).join('');
@@ -569,7 +665,70 @@ function init(){
   $('st2').value=S.act.st||'';
   renderSet();rRes();rDir();rFb();
 }
-restore();
+// ---------- sign-in, access check and live sync ----------
+const provider=new GoogleAuthProvider();
+$('gbtn').onclick=async()=>{$('lmsg').textContent='';
+  try{await signInWithPopup(auth,provider)}catch(e){$('lmsg').textContent='Sign-in did not complete: '+(e.code||e.message)}};
+$('signout').onclick=()=>signOut(auth);
+let unsubState=null,unsubAud=null,unsubAdm=null;
+function stopSync(){[unsubState,unsubAud,unsubAdm].forEach(u=>{if(u)u()});unsubState=unsubAud=unsubAdm=null;synced=false;lastSaved='';lastAdmin='';ADMAP={}}
+function startSync(){
+  stopSync();
+  unsubState=onSnapshot(STATE_REF,snap=>{
+    if(snap.metadata.hasPendingWrites)return;
+    if(!snap.exists()&&snap.metadata.fromCache)return;
+    synced=true;
+    if(!snap.exists())return;
+    const txt=canon(snap.data());
+    if(txt===lastSaved)return;
+    lastSaved=txt;Object.assign(S,snap.data());applyAdmin();init();
+  },err=>{$('sync').textContent='Sync error: '+(err.code||err.message)});
+  if(IS_ADMIN){
+    unsubAdm=onSnapshot(ADMIN_REF,snap=>{
+      if(snap.metadata.hasPendingWrites)return;
+      if(!snap.exists()&&snap.metadata.fromCache)return;
+      const items=(snap.data()||{}).items||[];
+      lastAdmin=canon({items});
+      ADMAP={};items.forEach(x=>ADMAP[x.id]=x);
+      applyAdmin();rRes();rFb();
+    },err=>{$('sync').textContent='Feedback sync error: '+(err.code||err.message)});
+    unsubAud=onSnapshot(query(AUD_COL,orderBy('at')),snap=>{
+      AUD=snap.docs.map(d=>d.data());
+      if($('log').classList.contains('on'))rLog();
+    },err=>{$('sync').textContent='Log sync error: '+(err.code||err.message)});
+  }
+}
+function roleFor(e){
+  if(e===OWNER_EMAIL)return 'admin';
+  if(ACCESS.admins.includes(e))return 'admin';
+  if(ACCESS.users.includes(e))return 'user';
+  return null;
+}
+function stopAccess(){if(accessUnsub){accessUnsub();accessUnsub=null}}
+function denyAccess(msg){stopSync();stopAccess();$('lmsg').textContent=msg;signOut(auth)}
+// Saves the registered-users list; every admin change is logged
+function saveAccess(msg){
+  setDoc(ACCESS_REF,{admins:[...new Set(ACCESS.admins)],users:[...new Set(ACCESS.users)]})
+    .then(()=>{audit('Access changed','Registered users',msg,'','');$('sync').textContent='Access saved'})
+    .catch(e=>{$('sync').textContent='Access save failed: '+(e.code||e.message)});
+}
+onAuthStateChanged(auth,user=>{
+  if(!user){document.body.classList.add('locked');stopSync();stopAccess();LAST_ROLE=null;return}
+  CURRENT_EMAIL=((user.email)||'').toLowerCase();
+  stopAccess();
+  accessUnsub=onSnapshot(ACCESS_REF,snap=>{
+    const d=snap.data()||{};
+    ACCESS={admins:(d.admins||[]).map(x=>x.toLowerCase()),users:(d.users||[]).map(x=>x.toLowerCase())};
+    const role=roleFor(CURRENT_EMAIL);
+    if(!role){denyAccess('The account '+CURRENT_EMAIL+' has no access. Ask the administrator to add it.');return}
+    IS_ADMIN=role==='admin';
+    document.body.classList.toggle('user',!IS_ADMIN);
+    $('who').textContent=CURRENT_EMAIL+(IS_ADMIN?' (admin)':'');
+    document.body.classList.remove('locked');
+    if(role!==LAST_ROLE){LAST_ROLE=role;startSync()}
+    renderSet();
+  },err=>denyAccess('Your account could not be verified. Ask the administrator to add it, then sign in again.'));
+});
 init();
 </script>
 </body>

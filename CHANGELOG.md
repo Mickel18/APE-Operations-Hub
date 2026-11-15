@@ -2,6 +2,26 @@
 
 All notable changes to APE Operations Hub are listed here, newest first.
 
+## v22
+- Registered users managed in the app (Settings → Registered users), stored in Firestore (`hub/access`).
+- Only the owner account is set in code; everyone else is added, given a role, or removed in the app.
+- Role changes and removals take effect without redeploying. Changes are recorded in the Activity Log.
+
+## v21
+- Two roles: admin and user, each with its own email list.
+- Feedback ratings and forms received stored in an admin-only Firestore document (`hub/admin`).
+- Feedback Analysis tab and Activity Log visible to admins only.
+- Feedback columns and Status log hidden from users in the Results Tracker.
+- Settings for users: personnel and holidays only.
+- Released rows highlighted in a lighter green.
+
+## v20
+- Google sign-in on a login page with a #96C93D background.
+- Access limited to an allowlist of Google accounts (also enforced in Firestore rules).
+- Working data stored in Cloud Firestore and shared live by all authorized users.
+- Activity Log stores the user email for each change and is kept in its own collection (entries cannot be edited or deleted).
+- Browser-only autosave replaced by cloud saving. Google Analytics removed.
+
 ## v19
 - Summary report date and Demographic report date columns placed after Assessment.
 

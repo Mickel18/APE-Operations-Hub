@@ -5,22 +5,22 @@ Email security contact: [ADD SECURITY EMAIL]
 Do not open a public issue for security problems.
 
 ## Rules for this repository
-1. **Never commit real client, patient, or employee data.** This includes CSV
-   exports of the Client Directory, Excel reports, and backup JSON files. The
-   `.gitignore` blocks these types, but check `git status` before every commit.
-2. **Keep the repository private.** The app is internal to the Company.
-3. **Do not hard-code credentials, API keys, or passwords** in `index.html`.
-   The app currently has no login; see README "Live deployment" before adding one.
+1. **Never commit real client, patient, or employee data.** This includes CSV and Excel exports, and backup JSON files. The `.gitignore` blocks these types, but check `git status` before every commit.
+2. **Keep the repository private.**
+3. **Firebase web configuration values are not secrets**, but access must be controlled with Firebase Authentication and Firestore rules. Never add service-account keys or admin credentials to this repository.
 
-## How the app stores data
-- Data is stored in the browser's local storage on the device that uses it.
-  It is not sent to any server by this version of the app.
-- Anyone with access to a device and its browser profile can read that data.
-- Backup files (JSON) contain all data in plain text. Store them only on
-  approved, encrypted storage and delete copies you no longer need.
+## Access control
+- Users sign in with Google. Access is granted only to the owner account (`OWNER_EMAIL`) and to accounts in the registered-users list, stored in `hub/access` in Firestore.
+- Admins manage the list in Settings → Registered users. The rules enforce the same list, so a change in the app is also a change in the database rules.
+- **Admins** see every tab, feedback ratings, forms received, the activity log and all settings.
+- **Users** see the Results Tracker up to the Demographic report date, plus personnel and holiday settings.
+- The activity log records each user's email. Entries cannot be edited or deleted.
+- Remove former staff from the registered-users list as soon as they leave.
+
+## Data storage
+- Working data is stored in Cloud Firestore in the `hub/state` record.
+- The activity log is stored in the `audit` collection. Its rules deny editing and deleting.
+- The app does not store client data in the browser's local storage.
 
 ## Compliance
-The app holds personal and health-related information about clients. Handling
-of this data must comply with the Data Privacy Act of 2012 (Republic Act No.
-10173) and the Company's own data-privacy policy. Confirm requirements with the
-Company's Data Protection Officer before deploying the app beyond one device.
+The app holds personal and health-related information about clients. Handling must comply with the Data Privacy Act of 2012 (Republic Act No. 10173) and the Company's data-privacy policy. Confirm requirements with the Company's Data Protection Officer before use, and review the Firebase data location and retention settings with them.

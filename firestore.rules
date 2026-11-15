@@ -1,0 +1,54 @@
+rules_version = '2';
+
+// Paste in Firebase Console > Firestore Database > Rules > Publish.
+// OWNER_EMAIL below must equal OWNER_EMAIL in index.html.
+// All other accounts are managed inside the app: Settings > Registered users.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null && request.auth.token.email_verified == true;
+    }
+
+    function isOwner() {
+      return signedIn() && request.auth.token.email == 'owner@company.com';
+    }
+
+    // Reads the registered-users list kept in hub/access ({ admins: [...], users: [...] })
+    function listed(field) {
+      return request.auth.token.email in get(/databases/$(database)/documents/hub/access).data[field];
+    }
+
+    function isAdmin() {
+      return isOwner() || (signedIn() && listed('admins'));
+    }
+
+    function isUser() {
+      return isAdmin() || (signedIn() && listed('users'));
+    }
+
+    // Registered users: any listed account can read the list; only admins can change it
+    match /hub/access {
+      allow read: if isUser();
+      allow write: if isAdmin();
+    }
+
+    // Working data: results, directory, personnel, holidays, TAT and package settings
+    match /hub/state {
+      allow read, write: if isUser();
+    }
+
+    // Feedback ratings and forms received: admins only
+    match /hub/admin {
+      allow read, write: if isAdmin();
+    }
+
+    // Activity log: listed users can add entries; only admins can read them.
+    // Entries cannot be edited or deleted.
+    match /audit/{entryId} {
+      allow read: if isAdmin();
+      allow create: if isUser();
+      allow update, delete: if false;
+    }
+  }
+}
