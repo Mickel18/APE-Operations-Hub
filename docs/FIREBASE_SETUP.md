@@ -20,7 +20,7 @@ The owner is always an admin and is the only account that can make the first cha
 
 1. In `index.html`:
    ```js
-   const OWNER_EMAIL = 'owner@company.com';
+   const OWNER_EMAIL = 'mickelp.panigua@gmail.com';
    ```
 2. In `firestore.rules`, in the `isOwner()` function, the same address.
 
