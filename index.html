@@ -94,7 +94,8 @@ body.user [data-t="fb"],body.user [data-t="log"]{display:none}
   <nav>
     <button data-t="res" class="on" title="Results Tracker"><span class="ic">📋</span> <span class="lbl">Results Tracker</span></button>
     <button data-t="dir" title="Client Directory"><span class="ic">👥</span> <span class="lbl">Client Directory</span></button>
-    <button data-t="fb" title="Feedback Analysis"><span class="ic">📊</span> <span class="lbl">Feedback Analysis</span></button>
+    <button data-t="sf" title="Significant Findings"><span class="ic">🧪</span> <span class="lbl">Significant Findings</span></button>
+  <button data-t="fb" title="Feedback Analysis"><span class="ic">📊</span> <span class="lbl">Feedback Analysis</span></button>
     <button data-t="log" title="Activity Log"><span class="ic">🕘</span> <span class="lbl">Activity Log</span></button>
     <button data-t="set" title="Settings"><span class="ic">⚙</span> <span class="lbl">Settings</span></button>
   </nav>
@@ -212,6 +213,32 @@ body.user [data-t="fb"],body.user [data-t="log"]{display:none}
   </table></div>
 </section>
 
+<!-- SIGNIFICANT FINDINGS -->
+<section id="sf">
+  <div class="bar">
+    <label>Company <select id="sfCo"></select></label>
+    <label>Address <input id="sfAddr" style="min-width:300px"></label>
+    <label>Date <input type="date" id="sfDate"></label>
+    <button class="btn g" id="sfx">Download Excel</button>
+  </div>
+  <details class="m"><summary>Upload lab CSV files</summary>
+    <div class="bar">
+      <label class="btn g">Patient master<input type="file" accept=".csv" data-sfup="master" hidden></label>
+      <label class="btn g">CBC<input type="file" accept=".csv" data-sfup="cbc" hidden></label>
+      <label class="btn g">CHEMISTRY<input type="file" accept=".csv" data-sfup="chem" hidden></label>
+      <label class="btn g">URINALYSIS<input type="file" accept=".csv" data-sfup="ua" hidden></label>
+      <label class="btn g">STOOL<input type="file" accept=".csv" data-sfup="stool" hidden></label>
+      <label class="btn g">X-RAY<input type="file" accept=".csv" data-sfup="xray" hidden></label>
+    </div>
+    <div class="bar"><label class="btn">Upload all files at once<input type="file" id="sfUp" multiple accept=".csv" hidden></label></div>
+    <small id="sfUpMsg" class="mut"></small>
+    <small>Export each Excel sheet as CSV. Upload one file with its button, or select all files at once; with the all-at-once option each file is recognized from its headers. A file uploaded with a test button must match that test, or it is skipped. The company selected above is assigned to the uploaded patients. ECG results come from the patient master file.</small>
+  </details>
+  <div class="cards" id="sfCards"></div>
+  <div class="wrap"><table id="sfTab" class="wrapcell"></table></div>
+  <small>Significant findings follow the workbook Instructions tab. Serology, pap smear and drug test are entered by hand.</small>
+</section>
+
 <!-- SETTINGS -->
 <section id="set">
   <div id="lists"></div>
@@ -226,7 +253,7 @@ body.user [data-t="fb"],body.user [data-t="log"]{display:none}
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/13.3.0/firebase-app.js";
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/13.3.0/firebase-auth.js";
-import { getFirestore, doc, setDoc, onSnapshot, collection, addDoc, query, orderBy } from "https://www.gstatic.com/firebasejs/13.3.0/firebase-firestore.js";
+import { getFirestore, doc, setDoc, onSnapshot, collection, addDoc, query, orderBy, writeBatch } from "https://www.gstatic.com/firebasejs/13.3.0/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDgggFaPoM_rYjOYbnFnbDvAkoBi5UhI1Q",
@@ -239,7 +266,7 @@ const firebaseConfig = {
 };
 // The owner account is always an admin. It must match OWNER_EMAIL in firestore.rules.
 // All other accounts are managed in Settings → Registered users.
-const OWNER_EMAIL = 'mickelp.panigua@gmail.com';
+const OWNER_EMAIL = 'owner@company.com';
 
 const fbApp = initializeApp(firebaseConfig);
 const auth = getAuth(fbApp);
@@ -540,6 +567,10 @@ function renderSet(){
     `<br><small>Ticked tests are included in the package. Overall TAT applies only when ticked; otherwise the expected release is the latest included test date.</small>`;
   const dirBody=S.imp.length?`<ul>${S.imp.map(x=>`<li>${esc(x.name)} — ${S.dir.filter(r=>r.src===x.id).length} client(s) <button class="btn g" data-dimp="${x.id}">Delete</button></li>`).join('')}</ul>`+
     `<button class="btn" data-dall="1">Delete all client data</button>`:'<small class="mut">No client data. Import a CSV or add clients manually in the Client Directory.</small>';
+  const refBody=`<table><thead><tr><th>Test</th><th>Male low</th><th>Male high</th><th>Female low</th><th>Female high</th></tr></thead><tbody>`+
+    SF_REF.map(r=>{const c=S.ref[r.h]||[r.lo[0],r.hi[0],r.lo[1],r.hi[1]];
+      return `<tr><td>${esc(r.l)}</td>`+[0,1,2,3].map(i=>`<td><input type="number" step="any" value="${c[i]??''}" data-refh="${esc(r.h)}" data-ri="${i}" style="width:72px"></td>`).join('')+'</tr>'}).join('')+
+    `</tbody></table><small>Used by the Significant Findings tab. These are common adult defaults, not laboratory-validated: confirm with the laboratory before use. Leave blank for no limit.</small>`;
   const accRows=[{e:OWNER_EMAIL,role:'admin',owner:true},...ACCESS.admins.map(e=>({e,role:'admin'})),...ACCESS.users.map(e=>({e,role:'user'}))];
   const accBody=`<table><thead><tr><th>Google account</th><th>Role</th><th></th></tr></thead><tbody>`+
     accRows.map(x=>`<tr><td>${esc(x.e)}${x.owner?' <small class="mut">(owner, always admin)</small>':''}</td><td>${x.owner?'Admin':
@@ -555,7 +586,7 @@ function renderSet(){
     (IS_ADMIN?block('Packages (tests included &amp; TAT rule)',pkgBody)+
       block('Client directory data (CSV imports &amp; manual entries)',dirBody)+
       block('Overall expected release — agreed TAT',ovrBody)+
-      block('Per-test TAT (LAB, CHEM, X-RAY, ECG, PAP, DT)',tatBody,false):'');
+      block('Per-test TAT (LAB, CHEM, X-RAY, ECG, PAP, DT)',tatBody,false)+block('Lab reference ranges (significant findings)',refBody,false):'');
 }
 $('lists').onclick=e=>{const t=e.target;
   if(t.dataset.accAdd){const em=$('acc_email').value.trim().toLowerCase(),role=$('acc_role').value;
@@ -576,6 +607,9 @@ $('lists').onclick=e=>{const t=e.target;
   if(t.dataset.hrm!==undefined){audit('Settings','Holiday removed',t.dataset.hrm);S.hol=S.hol.filter(h=>h!==t.dataset.hrm);renderSet();rRes();rFb()}
 };
 $('lists').onchange=e=>{const t=e.target;
+  if(t.dataset.refh){const r=SF_REF.find(x=>x.h===t.dataset.refh);
+    const cur=S.ref[r.h]?[...S.ref[r.h]]:[r.lo[0],r.hi[0],r.lo[1],r.hi[1]];
+    cur[+t.dataset.ri]=t.value===''?null:+t.value;S.ref[r.h]=cur;rSig();}
   if(t.dataset.accRole){const em=t.dataset.accRole,role=t.value;
     ACCESS.admins=ACCESS.admins.filter(x=>x!==em);ACCESS.users=ACCESS.users.filter(x=>x!==em);
     (role==='admin'?ACCESS.admins:ACCESS.users).push(em);saveAccess('Changed '+em+' to '+role);return}
@@ -654,6 +688,7 @@ document.querySelectorAll('aside nav button').forEach(b=>b.onclick=()=>{
 $('tog').onclick=()=>{document.body.classList.toggle('nav-off');$('tog').textContent=document.body.classList.contains('nav-off')?'▶':'◀'};
 function init(){
   S.imp=S.imp||[];
+  S.ref=S.ref||{};
   S.audit=S.audit||[];
   S.pkg=S.pkg&&S.pkg.length?S.pkg:[{name:'APE',tests:{lab:1,chem:1,xray:1,ecg:1,pap:1,dt:1},overall:1}];
   S.res.forEach(r=>{if(!r.id)r.id=newId();if(!r.log)r.log=[];if(!r.pkg)r.pkg=S.pkg[0].name;if(!r.fb)r.fb=ASP.map(()=>({e:0,s:0,n:0}));if(!r.cat){const g=gridT(r);r.cat={e:g.e,s:g.s,n:g.n}}});
@@ -664,14 +699,276 @@ function init(){
   [['am','am'],['rcz','rc'],['ca','ca'],['rn','rn']].forEach(([id,key])=>$(id).value=S.act[key]||'');
   $('st2').value=S.act.st||'';
   renderSet();rRes();rDir();rFb();
+  if(!$('sfDate').value)$('sfDate').value=F(new Date());
+  sfCompanies();rSig();
 }
+// ---------- significant findings tab (lab results from uploaded CSVs) ----------
+let LABS=[], unsubLab=null;
+// ==== SF RULES BEGIN ====
+// Significant-findings rules, from the workbook's Instruction tab. Pure functions, no DOM.
+const SF_ECG_OK=['LEFT AXIS DEVIATION','RIGHT AXIS DEVIATION','NON-SPECIFIC ST-T WAVE CHANGES','NON-SPECIFIC T-WAVE CHANGES','WAIVED','WITHIN NORMAL LIMITS','NORMAL ECG','NORMAL SINUS RHYTHM','SINUS RHYTHM','SINUS ARRHYTHMIA','SINUS BRADYCARDIA: HEART RATE IS 50-59 BPM','SINUS TACHYCARDIA: HEART RATE IS 101-109 BPM'];
+// Guide: RBC and WBC are significant above 3-5/HPF (male) or 5-8/HPF (female). The upper value is used.
+const SF_UA_LIM={rbc:{m:5,f:8},wbc:{m:5,f:8}};
+// Reference ranges [male, female]. Defaults are common adult ranges and must be confirmed by the laboratory; editable in Settings.
+const SF_REF=[
+ {g:'cbc',h:'WBC (x10^3/uL)',l:'WBC',lo:[4,4],hi:[11,11]},
+ {g:'cbc',h:'RBC (x10^6/uL)',l:'RBC',lo:[4.5,4.1],hi:[5.9,5.1]},
+ {g:'cbc',h:'Hemoglobin (g/dL)',l:'Hemoglobin',lo:[13,12],hi:[17,15]},
+ {g:'cbc',h:'Hematocrit (%)',l:'Hematocrit',lo:[40,36],hi:[50,46]},
+ {g:'cbc',h:'MCV (fL)',l:'MCV',lo:[80,80],hi:[100,100]},
+ {g:'cbc',h:'MCH (pg)',l:'MCH',lo:[27,27],hi:[33,33]},
+ {g:'cbc',h:'MCHC (g/dL)',l:'MCHC',lo:[32,32],hi:[36,36]},
+ {g:'cbc',h:'RDW-CV (%)',l:'RDW-CV',lo:[11.5,11.5],hi:[14.5,14.5]},
+ {g:'cbc',h:'Platelet count (x10^3/uL)',l:'Platelets',lo:[150,150],hi:[400,400]},
+ {g:'cbc',h:'Neutrophils (%)',l:'Neutrophils',lo:[40,40],hi:[75,75]},
+ {g:'cbc',h:'Lymphocytes (%)',l:'Lymphocytes',lo:[20,20],hi:[45,45]},
+ {g:'cbc',h:'Monocytes (%)',l:'Monocytes',lo:[2,2],hi:[10,10]},
+ {g:'cbc',h:'Eosinophils (%)',l:'Eosinophils',lo:[0,0],hi:[6,6]},
+ {g:'cbc',h:'Basophils (%)',l:'Basophils',lo:[0,0],hi:[1,1]},
+ {g:'cbc',h:'Blast cells (%)',l:'Blast cells',lo:[null,null],hi:[0,0]},
+ {g:'cbc',h:'Promyelocyte (%)',l:'Promyelocytes',lo:[null,null],hi:[0,0]},
+ {g:'cbc',h:'Myelocyte (%)',l:'Myelocytes',lo:[null,null],hi:[0,0]},
+ {g:'cbc',h:'Metamyelocyte (%)',l:'Metamyelocytes',lo:[null,null],hi:[0,0]},
+ {g:'cbc',h:'Stab cells (%)',l:'Stab cells',lo:[null,null],hi:[5,5]},
+ {g:'cbc',h:'Atypical lymphocytes (%)',l:'Atypical lymphocytes',lo:[null,null],hi:[0,0]},
+ {g:'chem',h:'FBS (mmol/L)',l:'FBS',lo:[3.9,3.9],hi:[5.5,5.5]},
+ {g:'chem',h:'RBS (mmol/L)',l:'RBS',lo:[null,null],hi:[7.8,7.8]},
+ {g:'chem',h:'OGTT 75 g (mmol/L)',l:'OGTT 2h',lo:[null,null],hi:[7.8,7.8]},
+ {g:'chem',h:'HbA1c (%)',l:'HbA1c',lo:[null,null],hi:[5.7,5.7]},
+ {g:'chem',h:'BUN (mmol/L)',l:'BUN',lo:[2.5,2.5],hi:[7.1,7.1]},
+ {g:'chem',h:'Creatinine (umol/L)',l:'Creatinine',lo:[62,44],hi:[106,80]},
+ {g:'chem',h:'eGFR (mL/min/1.73m2)',l:'eGFR',lo:[60,60],hi:[null,null]},
+ {g:'chem',h:'Uric acid (umol/L)',l:'Uric acid',lo:[210,150],hi:[420,360]},
+ {g:'chem',h:'Total cholesterol (mmol/L)',l:'Total cholesterol',lo:[null,null],hi:[5.2,5.2]},
+ {g:'chem',h:'Triglycerides (mmol/L)',l:'Triglycerides',lo:[null,null],hi:[1.7,1.7]},
+ {g:'chem',h:'HDL (mmol/L)',l:'HDL',lo:[1.0,1.3],hi:[null,null]},
+ {g:'chem',h:'LDL (mmol/L)',l:'LDL',lo:[null,null],hi:[3.4,3.4]},
+ {g:'chem',h:'ALT/SGPT (U/L)',l:'ALT',lo:[null,null],hi:[40,40]},
+ {g:'chem',h:'AST/SGOT (U/L)',l:'AST',lo:[null,null],hi:[40,40]},
+ {g:'chem',h:'Alkaline phosphatase (U/L)',l:'Alkaline phosphatase',lo:[44,44],hi:[147,147]},
+ {g:'chem',h:'GGT (U/L)',l:'GGT',lo:[null,null],hi:[55,38]},
+ {g:'chem',h:'Total protein (g/L)',l:'Total protein',lo:[60,60],hi:[80,80]},
+ {g:'chem',h:'Albumin (g/L)',l:'Albumin',lo:[35,35],hi:[50,50]},
+ {g:'chem',h:'Total bilirubin',l:'Total bilirubin',lo:[null,null],hi:[21,21]},
+ {g:'chem',h:'Direct bilirubin (umol/L)',l:'Direct bilirubin',lo:[null,null],hi:[5,5]},
+ {g:'chem',h:'Sodium (mmol/L)',l:'Sodium',lo:[135,135],hi:[145,145]},
+ {g:'chem',h:'Potassium (mmol/L)',l:'Potassium',lo:[3.5,3.5],hi:[5.1,5.1]},
+ {g:'chem',h:'Chloride (mmol/L)',l:'Chloride',lo:[98,98],hi:[107,107]},
+ {g:'chem',h:'Calcium (mmol/L)',l:'Calcium',lo:[2.2,2.2],hi:[2.6,2.6]},
+ {g:'chem',h:'Amylase (U/L)',l:'Amylase',lo:[28,28],hi:[100,100]},
+ {g:'chem',h:'Lipase (U/L)',l:'Lipase',lo:[null,null],hi:[60,60]},
+ {g:'chem',h:'LDH (U/L)',l:'LDH',lo:[140,140],hi:[280,280]},
+ {g:'chem',h:'CPK total (U/L)',l:'CPK',lo:[39,26],hi:[308,192]},
+ {g:'chem',h:'hs-CRP (mg/dL)',l:'hs-CRP',lo:[null,null],hi:[0.3,0.3]},
+ {g:'chem',h:'Serum iron (umol/L)',l:'Serum iron',lo:[11,9],hi:[31,30]}
+];
+const sfNum=v=>{const s=String(v??'').trim();return/^[-+]?\d*\.?\d+$/.test(s)?+s:null};
+const sfMax=v=>{const m=String(v??'').match(/\d+(\.\d+)?/g);return m?Math.max(...m.map(Number)):null};
+const sfPlus=v=>{const m=String(v??'').match(/(\d)\s*\+/);return m?+m[1]:0};
+const sfPos=v=>{const s=String(v??'');return /pos|\+/i.test(s)&&!/neg/i.test(s)};
+const sfSex=v=>/^f/i.test(String(v??'').trim())?'f':'m';   // unknown sex is judged with the male limits
+const sfRef=r=>{const o=S.ref&&S.ref[r.h];return o?{lo:[o[0],o[2]],hi:[o[1],o[3]]}:{lo:r.lo,hi:r.hi}};
+const sfFlag=(r,v,k)=>{const n=sfNum(v);if(n==null)return null;const b=sfRef(r),i=k==='f'?1:0;
+  if(b.lo[i]!=null&&n<b.lo[i])return 'L';if(b.hi[i]!=null&&n>b.hi[i])return 'H';return ''};
+const sfNone='No significant findings';
+function sfCbc(d,k){
+  if(!d||!d.cbc)return '';
+  const c=d.cbc, out=[], F=h=>{const r=SF_REF.find(x=>x.h===h);return r?sfFlag(r,c[h],k):null};
+  SF_REF.filter(r=>r.g==='cbc').forEach(r=>{const f=sfFlag(r,c[r.h],k);if(f)out.push(`${r.l} ${c[r.h]} (${f})`)});
+  const hb=F('Hemoglobin (g/dL)'), mcv=F('MCV (fL)');
+  if(hb==='L'){
+    if(mcv==='L')out.push('Pattern: microcytic anemia, consider iron deficiency or thalassemia trait');
+    else if(mcv==='H')out.push('Pattern: macrocytic anemia, consider vitamin B12 or folate deficiency');
+    else out.push('Pattern: normocytic anemia');
+  }
+  if(F('WBC (x10^3/uL)')==='H'&&F('Neutrophils (%)')==='H')out.push('Pattern: neutrophilic leukocytosis, suggests bacterial infection or inflammation');
+  if(F('Lymphocytes (%)')==='H')out.push('Pattern: lymphocytosis, consider viral infection');
+  if(F('Lymphocytes (%)')==='L')out.push('Pattern: lymphopenia');
+  if(F('WBC (x10^3/uL)')==='L')out.push('Pattern: leukopenia');
+  if(F('Eosinophils (%)')==='H')out.push('Pattern: eosinophilia, consider parasitic infestation or allergy');
+  if(F('Platelet count (x10^3/uL)')==='L')out.push('Pattern: thrombocytopenia');
+  if(F('Platelet count (x10^3/uL)')==='H')out.push('Pattern: thrombocytosis');
+  if(['Blast cells (%)','Promyelocyte (%)','Myelocyte (%)','Metamyelocyte (%)','Stab cells (%)'].some(h=>F(h)==='H'))
+    out.push('Pattern: immature granulocytes present, evaluate for hematologic disorder or leukemoid reaction');
+  if(F('Atypical lymphocytes (%)')==='H')out.push('Pattern: atypical lymphocytes, consider viral infection');
+  if(F('RDW-CV (%)')==='H')out.push('Pattern: anisocytosis (high RDW)');
+  return out.length?out.join('; '):sfNone;
+}
+function sfChem(d,k){
+  if(!d||!d.chem)return '';
+  const c=d.chem, out=[];
+  SF_REF.filter(r=>r.g==='chem').forEach(r=>{const f=sfFlag(r,c[r.h],k);if(f)out.push(`${r.l} ${c[r.h]} (${f})`)});
+  return out.length?out.join('; '):sfNone;
+}
+function sfUa(d,k){
+  if(!d||!d.ua)return '';
+  const u=d.ua, out=[];
+  [['Sugar',3],['Protein',3],['Ketone',3],['Bilirubin',3],['Urobilinogen',3]].forEach(([h,t])=>{if(sfPlus(u[h])>=t)out.push(`${h} ${u[h]}`)});
+  if(sfMax(u['RBC (/HPF)'])>SF_UA_LIM.rbc[k])out.push(`RBC ${u['RBC (/HPF)']}/HPF`);
+  if(sfMax(u['WBC (/HPF)'])>SF_UA_LIM.wbc[k])out.push(`WBC ${u['WBC (/HPF)']}/HPF`);
+  if(/many/i.test(u['Uric acid']||''))out.push('Uric acid crystals MANY');
+  if(/few|many/i.test(u['Trichomonas']||''))out.push(`Trichomonas vaginalis ${u['Trichomonas']}`);
+  if(/many/i.test(u['Yeast cells']||''))out.push('Yeast cells MANY');
+  if(sfMax(u['Hyaline cast (/LPF)'])>0)out.push(`Hyaline casts ${u['Hyaline cast (/LPF)']}`);
+  if(sfMax(u['Fine granular cast (/LPF)'])>0)out.push(`Fine granular casts ${u['Fine granular cast (/LPF)']}`);
+  return out.length?out.join('; '):sfNone;
+}
+function sfStool(d){
+  if(!d||!d.stool)return '';
+  const s=d.stool, out=[];
+  if(/water/i.test(s['Consistency']||''))out.push('Watery stool');
+  if(/many/i.test(s['Yeast']||''))out.push('Yeast cells MANY');
+  if(/many/i.test(s['Fat globules']||''))out.push('Fat globules MANY');
+  if(sfMax(s['WBC (/HPF)'])>3)out.push(`WBC ${s['WBC (/HPF)']}/HPF`);
+  if(sfMax(s['RBC (/HPF)'])>3)out.push(`RBC ${s['RBC (/HPF)']}/HPF`);
+  if(sfPos(s['Entamoeba histolytica cyst']))out.push('Entamoeba histolytica/dispar cyst POSITIVE');
+  if(sfPos(s['Giardia lamblia cyst']))out.push('Giardia lamblia cyst POSITIVE');
+  if(sfPos(s['Ascaris lumbricoides ova']))out.push('Ascaris lumbricoides ova POSITIVE');
+  return out.length?out.join('; '):sfNone;
+}
+// TB history on record (PMH 4 Tuberculosis, PMH 28 Others) means a chest finding is not reported
+const sfHist=h=>{h=h||{};const v=String(h.tb??'').trim();
+  return (v!==''&&!/^(no|none|n|0|-|nil)$/i.test(v))||/ptb|primary complex|tubercul|koch/i.test(String(h.other??''))};
+function sfXray(d){
+  if(!d||!d.xr)return '';
+  const text=`${d.xr.Findings||''} ${d.xr.Impressions||''}`;
+  if(/nodul|opacit|koch|primary complex|infiltrat|cavit|lesion|fibros/i.test(text)&&!sfHist(d.hist))
+    return `${d.xr.Impressions||d.xr.Findings}`;
+  return sfNone;
+}
+function sfEcg(t){
+  if(t==null||String(t).trim()==='')return '';
+  const n=String(t).toUpperCase().replace(/\s+/g,' ').trim().replace(/\.$/,'').trim();
+  return SF_ECG_OK.includes(n)?sfNone:String(t).trim();
+}
+// Name formatted as the workbook formula: "Last, First M." (shortened when longer than 30 characters)
+function sfName(l,f,m){l=(l||'').trim();f=(f||'').trim();m=(m||'').trim();if(!l&&!f)return '';
+  const full=`${l}, ${f} ${m}`.trim();
+  return full.length>30?`${l}, ${f} ${m?m[0]+'.':''}`.trim():full}
+
+// Columns kept from each lab sheet (the rest of the workbook columns are not needed for the summary)
+const SF_KEEP={
+ cbc:SF_REF.filter(r=>r.g==='cbc').map(r=>r.h),
+ chem:SF_REF.filter(r=>r.g==='chem').map(r=>r.h),
+ ua:['Sugar','Protein','Ketone','Bilirubin','Urobilinogen','RBC (/HPF)','WBC (/HPF)','Hyaline cast (/LPF)','Fine granular cast (/LPF)','Yeast cells','Trichomonas','Uric acid'],
+ stool:['Consistency','WBC (/HPF)','RBC (/HPF)','Fat globules','Yeast','Entamoeba histolytica cyst','Giardia lamblia cyst','Ascaris lumbricoides ova']
+};
+// Identifies an uploaded CSV from its header row
+function sfDetect(H){const has=s=>H.includes(s);
+  if(has('Lab 6 ECG'))return 'master';
+  if(has('WBC (x10^3/uL)'))return 'cbc';
+  if(has('FBS (mmol/L)'))return 'chem';
+  if(has('Specific gravity'))return 'ua';
+  if(has('Consistency'))return 'stool';
+  if(has('Findings')&&has('Impressions'))return 'xray';
+  return null}
+const sfSlug=s=>String(s||'').trim().toUpperCase().replace(/[^A-Z0-9]+/g,'-');
+// ==== SF RULES END ====
+
+function sfCompanies(){
+  const cur=$('sfCo').value;
+  const names=[...new Set([...S.res.map(r=>(r.co||'').trim()),...LABS.map(d=>d.company||'')].filter(Boolean))].sort();
+  $('sfCo').innerHTML='<option value="">— select company —</option>'+names.map(n=>`<option ${n===cur?'selected':''}>${esc(n)}</option>`).join('');
+}
+function sigRows(co){
+  return LABS.filter(d=>d.company===co).sort((a,b)=>(+a.sn||0)-(+b.sn||0)).map(d=>{
+    const k=sfSex(d.sex), m=d.manual||{};
+    return {id:d.id,sn:d.sn,name:d.name||'',cbc:sfCbc(d,k),chem:sfChem(d,k),ua:sfUa(d,k),stool:sfStool(d),xray:sfXray(d),ecg:sfEcg(d.ecg),
+      serology:m.serology||'',pap:m.pap||'',drug:m.drug||''};
+  });
+}
+const sfCats=['cbc','chem','ua','stool','xray','ecg'];
+function rSig(){
+  const co=$('sfCo').value, rows=co?sigRows(co):[];
+  const flagged=rows.filter(x=>sfCats.some(k=>x[k]&&x[k]!==sfNone)).length;
+  const none=rows.filter(x=>!sfCats.some(k=>x[k])).length;
+  $('sfCards').innerHTML=[['Patients',rows.length],['Flagged',flagged],['Without results',none]]
+    .map(([l,v])=>`<div class="card"><small>${l}</small><b>${v}</b></div>`).join('');
+  const inp=(x,f)=>`<input value="${esc(x[f])}" data-mid="${esc(x.id)}" data-mf="${f}" style="width:130px">`;
+  $('sfTab').innerHTML='<thead><tr><th>SN</th><th>Name</th><th>CBC</th><th>CHEMISTRY</th><th>URINALYSIS</th><th>FECALYSIS</th><th>SEROLOGY</th><th>X-RAY</th><th>ECG</th><th>PAP SMEAR</th><th>DRUG TEST</th></tr></thead><tbody>'+
+    (rows.length?rows.map(x=>`<tr><td>${esc(x.sn)}</td><td>${esc(x.name)}</td><td>${esc(x.cbc)}</td><td>${esc(x.chem)}</td><td>${esc(x.ua)}</td><td>${esc(x.stool)}</td><td>${inp(x,'serology')}</td><td>${esc(x.xray)}</td><td>${esc(x.ecg)}</td><td>${inp(x,'pap')}</td><td>${inp(x,'drug')}</td></tr>`).join('')
+      :'<tr><td colspan="11" class="mut">No lab results for this company yet. Upload the CSV files above.</td></tr>')+'</tbody>';
+}
+$('sfCo').onchange=()=>{
+  const d=S.dir.find(x=>(x.co||'').trim().toLowerCase()===$('sfCo').value.trim().toLowerCase());
+  if(d&&d.addr)$('sfAddr').value=d.addr;
+  rSig();
+};
+$('sfTab').onchange=async e=>{
+  const t=e.target; if(!t.dataset.mf)return;
+  const d=LABS.find(x=>x.id===t.dataset.mid); if(d)d.manual={...(d.manual||{}),[t.dataset.mf]:t.value};
+  try{
+    await setDoc(doc(db,'labs',t.dataset.mid),{manual:{[t.dataset.mf]:t.value}},{merge:true});
+    audit('Significant findings entry',(d&&d.name)||t.dataset.mid,t.dataset.mf,'',t.value);
+  }catch(err){$('sfUpMsg').textContent='Save failed: '+(err.code||err.message)}
+};
+const SF_LABEL={master:'Patient master',cbc:'CBC',chem:'CHEMISTRY',ua:'URINALYSIS',stool:'STOOL',xray:'X-RAY'};
+// Reads lab CSV files and saves them. expect: a test type when the file came from a specific button.
+async function sfIngest(files,expect){
+  const co=$('sfCo').value.trim();
+  if(!co){alert('Select the company first. The uploaded patients are assigned to it.');return}
+  const msgs=[], writes=[];
+  try{
+    for(const f of files){
+      const rows=parseCSV(await f.text());
+      const hi=rows.findIndex(r=>String(r[0]||'').trim()==='SN');
+      const H=hi<0?[]:rows[hi].map(x=>String(x||'').trim());
+      const type=hi<0?null:sfDetect(H);
+      if(!type){msgs.push(`${f.name}: not recognized`);continue}
+      if(expect&&type!==expect){msgs.push(`${f.name} looks like ${SF_LABEL[type]}, not ${SF_LABEL[expect]}. Skipped.`);continue}
+      let n=0;
+      rows.slice(hi+1).filter(r=>String(r[0]||'').trim()!=='').forEach(r=>{
+        const rec={};H.forEach((h,j)=>{if(h&&!(h in rec))rec[h]=String(r[j]??'').trim()});
+        const sn=rec['SN'].replace(/\.0+$/,''); if(!sn)return; n++;
+        const patch={company:co,sn};
+        const nm=sfName(rec['Last name'],rec['First name'],rec['Middle name']); if(nm)patch.name=nm;
+        if(type==='master'){
+          patch.ecg=rec['Lab 6 ECG']||'';
+          patch.hist={tb:rec['PMH 4 Tuberculosis']||'',other:rec['PMH 28 Others']||''};
+        }else{
+          patch.sex=rec['Sex']||''; patch.age=rec['Age']||'';
+          if(type==='xray')patch.xr={Findings:rec['Findings']||'',Impressions:rec['Impressions']||''};
+          else{const o={};SF_KEEP[type].forEach(k=>{if(k in rec)o[k]=rec[k]});patch[type]=o}
+        }
+        writes.push({id:sfSlug(co)+'__'+sn,patch});
+      });
+      msgs.push(`${SF_LABEL[type]}: ${n} rows from ${f.name}`);
+    }
+    for(let i=0;i<writes.length;i+=400){
+      const bt=writeBatch(db);
+      writes.slice(i,i+400).forEach(w=>bt.set(doc(db,'labs',w.id),w.patch,{merge:true}));
+      await bt.commit();
+    }
+    if(writes.length)audit('Lab results uploaded',co,'patients',0,writes.length);
+    $('sfUpMsg').textContent=msgs.join(' · ')+(writes.length?` — saved ${writes.length} patient records`:'');
+  }catch(err){$('sfUpMsg').textContent='Upload failed: '+(err.code||err.message)}
+}
+$('sfUp').onchange=e=>{sfIngest([...e.target.files]);e.target.value=''};
+document.querySelectorAll('[data-sfup]').forEach(inp=>inp.onchange=e=>{sfIngest([...e.target.files],inp.dataset.sfup);e.target.value=''});
+$('sfx').onclick=()=>{
+  const co=$('sfCo').value;
+  if(!co){alert('Select a company first.');return}
+  const rows=sigRows(co);
+  const aoa=[['Company:',co],['Address:',$('sfAddr').value],['Date:',$('sfDate').value],[],['SUMMARY OF SIGNIFICANT FINDINGS'],[],
+    ['','SN','Name','CBC','CHEMISTRY','URINALYSIS','FECALYSIS','SEROLOGY','X-RAY','ECG','PAP SMEAR','DRUG TEST'],
+    ...rows.map((x,i)=>[i+1,x.sn,x.name,x.cbc,x.chem,x.ua,x.stool,x.serology,x.xray,x.ecg,x.pap,x.drug])];
+  xl(`Summary_of_Significant_Findings_${sfSlug(co)}.xlsx`,[['Summary Report',aoa]]);
+};
+function sfListen(){
+  if(unsubLab)unsubLab();
+  unsubLab=onSnapshot(collection(db,'labs'),snap=>{
+    LABS=snap.docs.map(d=>({id:d.id,...d.data()}));
+    sfCompanies(); rSig();
+  },err=>{$('sfUpMsg').textContent='Lab data sync error: '+(err.code||err.message)});
+}
+
 // ---------- sign-in, access check and live sync ----------
 const provider=new GoogleAuthProvider();
 $('gbtn').onclick=async()=>{$('lmsg').textContent='';
   try{await signInWithPopup(auth,provider)}catch(e){$('lmsg').textContent='Sign-in did not complete: '+(e.code||e.message)}};
 $('signout').onclick=()=>signOut(auth);
 let unsubState=null,unsubAud=null,unsubAdm=null;
-function stopSync(){[unsubState,unsubAud,unsubAdm].forEach(u=>{if(u)u()});unsubState=unsubAud=unsubAdm=null;synced=false;lastSaved='';lastAdmin='';ADMAP={}}
+function stopSync(){[unsubState,unsubAud,unsubAdm,unsubLab].forEach(u=>{if(u)u()});unsubState=unsubAud=unsubAdm=null;unsubLab=null;synced=false;lastSaved='';lastAdmin='';ADMAP={}}
 function startSync(){
   stopSync();
   unsubState=onSnapshot(STATE_REF,snap=>{
@@ -683,6 +980,7 @@ function startSync(){
     if(txt===lastSaved)return;
     lastSaved=txt;Object.assign(S,snap.data());applyAdmin();init();
   },err=>{$('sync').textContent='Sync error: '+(err.code||err.message)});
+  sfListen();
   if(IS_ADMIN){
     unsubAdm=onSnapshot(ADMIN_REF,snap=>{
       if(snap.metadata.hasPendingWrites)return;

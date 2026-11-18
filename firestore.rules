@@ -43,6 +43,11 @@ service cloud.firestore {
       allow read, write: if isAdmin();
     }
 
+    // Lab results and significant findings: listed users can read, upload and enter manual results
+    match /labs/{labId} {
+      allow read, write: if isUser();
+    }
+
     // Activity log: listed users can add entries; only admins can read them.
     // Entries cannot be edited or deleted.
     match /audit/{entryId} {

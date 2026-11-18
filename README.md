@@ -15,6 +15,7 @@ It tracks Annual Physical Exam (APE) results, the client directory, and client f
 | **TAT conflict check** | Flags APEs where a test is due after the overall expected release. |
 | **Feedback** | Nine service aspects rated Excellent / Satisfactory / Needs Improvement per APE in a pop-up. Category totals are calculated automatically. Forms received and companies responded are tracked. |
 | **Feedback Analysis** | Summary cards, aspect table, monthly tracker, APEs by month, demographics pie charts. Excel export. |
+| **Significant Findings** | Upload lab CSV exports and generate the Summary of Significant Findings per company and patient, following the workbook Instructions tab. Manual entries for serology, pap smear and drug test. Excel export. |
 | **Client Directory** | Import CSV, add manually, edit inline, delete by import batch. |
 | **Activity Log** | Records every change with date, time, user, old and new values. Searchable, Excel export. |
 | **Settings** | Personnel list, holidays, overall TAT per pax tier, per-test TAT, packages, directory data. |

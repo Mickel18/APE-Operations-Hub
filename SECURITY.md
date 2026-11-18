@@ -22,5 +22,8 @@ Do not open a public issue for security problems.
 - The activity log is stored in the `audit` collection. Its rules deny editing and deleting.
 - The app does not store client data in the browser's local storage.
 
+## Laboratory data
+Lab results (CBC, chemistry, urinalysis, stool, X-ray, ECG) and the summaries built from them are health information. They are stored in the `labs` collection, readable by listed users. Do not commit lab files to the repository.
+
 ## Compliance
 The app holds personal and health-related information about clients. Handling must comply with the Data Privacy Act of 2012 (Republic Act No. 10173) and the Company's data-privacy policy. Confirm requirements with the Company's Data Protection Officer before use, and review the Firebase data location and retention settings with them.

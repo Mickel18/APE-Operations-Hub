@@ -2,6 +2,14 @@
 
 All notable changes to APE Operations Hub are listed here, newest first.
 
+## v23
+- Significant Findings tab: upload the lab CSV exports (patient master, CBC, CHEM, URINALYSIS, STOOL, X-RAY) together; each file is recognized from its headers.
+- Summary per patient in the workbook's Summary Report format: CBC, chemistry, urinalysis, fecalysis, serology, X-ray and ECG, with the significant-findings rules from the workbook Instructions tab.
+- Pap smear, drug test and serology entered by hand, saved per patient.
+- Excel export in the Summary Report layout.
+- Lab reference ranges editable in Settings (admins). Defaults must be confirmed by the laboratory.
+- Lab records stored in Firestore (`labs`), readable and writable by listed users.
+
 ## v22
 - Registered users managed in the app (Settings → Registered users), stored in Firestore (`hub/access`).
 - Only the owner account is set in code; everyone else is added, given a role, or removed in the app.
