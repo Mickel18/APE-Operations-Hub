@@ -11,7 +11,7 @@ service cloud.firestore {
     }
 
     function isOwner() {
-      return signedIn() && request.auth.token.email == 'owner@company.com';
+      return signedIn() && request.auth.token.email == 'mickelp.panigua@gmail.com';
     }
 
     // Reads the registered-users list kept in hub/access ({ admins: [...], users: [...] })
