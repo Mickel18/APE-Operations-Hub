@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>APE Operations Hub</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
 <style>
 :root{--bg:#f6f7f9;--fg:#1d2330;--mut:#667085;--card:#fff;--line:#dde1e8;--acc:#5c8f1a;--bad:#c0392b;--ok:#1e8449;--blue:#1f5fbf}
 @media (prefers-color-scheme:dark){:root{--bg:#14171c;--fg:#e6e9ef;--mut:#9aa3b2;--card:#1c2028;--line:#2e3441;--acc:#8cc63f;--bad:#ff7b6b;--ok:#5fd38a;--blue:#6aa3ff}}
@@ -75,6 +76,13 @@ body.locked aside,body.locked main{display:none}
 #who,#sync{display:block;word-break:break-all;color:#1b2a0a}
 body.user .adm{display:none}
 body.user [data-t="fb"],body.user [data-t="log"]{display:none}
+.nosig{background:var(--line);color:var(--mut)}
+#sfPrint{display:none}
+.pt{font-size:11px;width:100%}.pt th,.pt td{border:1px solid #888;padding:3px 4px;vertical-align:top;text-align:left}
+@media print{body *{visibility:hidden}#sfPrint,#sfPrint *{visibility:visible}#sfPrint{display:block;position:absolute;left:0;top:0;width:100%}.nosig{background:#e5e7eb!important}@page{size:landscape;margin:10mm}}
+body.biller aside nav button:not([data-t="billing"]){display:none}
+body.biller .side-tools{display:none}
+body.user [data-t="billing"],body.user #billing{display:none}
 </style>
 </head>
 <body class="locked">
@@ -97,6 +105,7 @@ body.user [data-t="fb"],body.user [data-t="log"]{display:none}
     <button data-t="sf" title="Significant Findings"><span class="ic">🧪</span> <span class="lbl">Significant Findings</span></button>
   <button data-t="fb" title="Feedback Analysis"><span class="ic">📊</span> <span class="lbl">Feedback Analysis</span></button>
     <button data-t="log" title="Activity Log"><span class="ic">🕘</span> <span class="lbl">Activity Log</span></button>
+    <button data-t="billing" title="Billing"><span class="ic">🧾</span> <span class="lbl">Billing</span></button>
     <button data-t="set" title="Settings"><span class="ic">⚙</span> <span class="lbl">Settings</span></button>
   </nav>
   <div class="side-tools">
@@ -220,6 +229,7 @@ body.user [data-t="fb"],body.user [data-t="log"]{display:none}
     <label>Address <input id="sfAddr" style="min-width:300px"></label>
     <label>Date <input type="date" id="sfDate"></label>
     <button class="btn g" id="sfx">Download Excel</button>
+    <button class="btn g" id="sfpdf">Download PDF</button>
   </div>
   <details class="m"><summary>Upload lab CSV files</summary>
     <div class="bar">
@@ -236,7 +246,14 @@ body.user [data-t="fb"],body.user [data-t="log"]{display:none}
   </details>
   <div class="cards" id="sfCards"></div>
   <div class="wrap"><table id="sfTab" class="wrapcell"></table></div>
+  <div id="sfPrint"></div>
   <small>Significant findings follow the workbook Instructions tab. Serology, pap smear and drug test are entered by hand.</small>
+</section>
+
+<!-- BILLING (phase 2 builds the billing screens here) -->
+<section id="billing">
+  <div class="card" style="max-width:720px"><h3 style="margin-top:0">Billing</h3>
+    <p>The billing module is being moved into this platform. Billers and admins will work here.</p></div>
 </section>
 
 <!-- SETTINGS -->
@@ -266,7 +283,7 @@ const firebaseConfig = {
 };
 // The owner account is always an admin. It must match OWNER_EMAIL in firestore.rules.
 // All other accounts are managed in Settings → Registered users.
-const OWNER_EMAIL = 'mickelp.panigua@gmail.com';
+const OWNER_EMAIL = 'owner@company.com';
 
 const fbApp = initializeApp(firebaseConfig);
 const auth = getAuth(fbApp);
@@ -275,7 +292,7 @@ const STATE_REF = doc(db, 'hub', 'state');
 const ADMIN_REF = doc(db, 'hub', 'admin');   // feedback ratings and forms received: admins only
 let IS_ADMIN = false, ADMAP = {}, lastAdmin = '';
 const ACCESS_REF = doc(db, 'hub', 'access');  // registered users: { admins: [...], users: [...] }
-let ACCESS = {admins: [], users: []}, CURRENT_EMAIL = '', accessUnsub = null, LAST_ROLE = null;
+let ACCESS = {admins: [], users: [], billers: []}, CURRENT_EMAIL = '', accessUnsub = null, LAST_ROLE = null, CUR_ROLE = null;
 const AUD_COL = collection(db, 'audit');
 let AUD = [];
 let lastSaved = '', synced = false, saveTimer = null;
@@ -571,13 +588,13 @@ function renderSet(){
     SF_REF.map(r=>{const c=S.ref[r.h]||[r.lo[0],r.hi[0],r.lo[1],r.hi[1]];
       return `<tr><td>${esc(r.l)}</td>`+[0,1,2,3].map(i=>`<td><input type="number" step="any" value="${c[i]??''}" data-refh="${esc(r.h)}" data-ri="${i}" style="width:72px"></td>`).join('')+'</tr>'}).join('')+
     `</tbody></table><small>Used by the Significant Findings tab. These are common adult defaults, not laboratory-validated: confirm with the laboratory before use. Leave blank for no limit.</small>`;
-  const accRows=[{e:OWNER_EMAIL,role:'admin',owner:true},...ACCESS.admins.map(e=>({e,role:'admin'})),...ACCESS.users.map(e=>({e,role:'user'}))];
+  const accRows=[{e:OWNER_EMAIL,role:'admin',owner:true},...ACCESS.admins.map(e=>({e,role:'admin'})),...ACCESS.users.map(e=>({e,role:'user'})),...ACCESS.billers.map(e=>({e,role:'biller'}))];
   const accBody=`<table><thead><tr><th>Google account</th><th>Role</th><th></th></tr></thead><tbody>`+
     accRows.map(x=>`<tr><td>${esc(x.e)}${x.owner?' <small class="mut">(owner, always admin)</small>':''}</td><td>${x.owner?'Admin':
-      `<select data-acc-role="${esc(x.e)}"><option value="admin" ${x.role==='admin'?'selected':''}>Admin</option><option value="user" ${x.role==='user'?'selected':''}>User</option></select>`}</td>`+
+      `<select data-acc-role="${esc(x.e)}"><option value="admin" ${x.role==='admin'?'selected':''}>Admin</option><option value="user" ${x.role==='user'?'selected':''}>User</option><option value="biller" ${x.role==='biller'?'selected':''}>Biller</option></select>`}</td>`+
       `<td>${x.owner?'':`<button class="btn g" data-acc-del="${esc(x.e)}">Remove</button>`}</td></tr>`).join('')+
     `</tbody></table><div class="bar" style="margin-top:8px"><input id="acc_email" placeholder="Google account email" style="min-width:260px">`+
-    `<select id="acc_role"><option value="user">User</option><option value="admin">Admin</option></select> <button class="btn" data-acc-add="1">Add account</button></div>`+
+    `<select id="acc_role"><option value="user">User</option><option value="biller">Biller</option><option value="admin">Admin</option></select> <button class="btn" data-acc-add="1">Add account</button></div>`+
     `<small>The person must sign in with exactly this Google email. Admins see every tab and all settings. Users see the Results Tracker up to the Demographic report date, plus personnel and holidays.</small>`;
   $('lists').innerHTML=
     (IS_ADMIN?block('Registered users (access)',accBody):'')+
@@ -592,9 +609,9 @@ $('lists').onclick=e=>{const t=e.target;
   if(t.dataset.accAdd){const em=$('acc_email').value.trim().toLowerCase(),role=$('acc_role').value;
     if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)){alert('Enter a valid email address.');return}
     if(roleFor(em)){alert('This account is already registered.');return}
-    (role==='admin'?ACCESS.admins:ACCESS.users).push(em);saveAccess('Added '+em+' as '+role);return}
+    addAccess(em,role);saveAccess('Added '+em+' as '+role);return}
   if(t.dataset.accDel!==undefined){const em=t.dataset.accDel;
-    if(confirm('Remove access for '+em+'?')){ACCESS.admins=ACCESS.admins.filter(x=>x!==em);ACCESS.users=ACCESS.users.filter(x=>x!==em);saveAccess('Removed '+em)}return}
+    if(confirm('Remove access for '+em+'?')){removeAccess(em);saveAccess('Removed '+em)}return}
   if(t.dataset.padd){const v=$('in_pkg').value.trim();if(v){audit('Settings','Package added',v);S.pkg.push({name:v,tests:{},overall:0});renderSet();fillForm();rRes()}}
   if(t.dataset.pdel!==undefined){const p=S.pkg[+t.dataset.pdel];
     if(S.pkg.length>1&&confirm('Delete package "'+p.name+'"? APEs using it will fall back to the first package.')){audit('Settings','Package removed',p.name);S.pkg.splice(+t.dataset.pdel,1);renderSet();fillForm();rRes();rFb()}}
@@ -611,8 +628,7 @@ $('lists').onchange=e=>{const t=e.target;
     const cur=S.ref[r.h]?[...S.ref[r.h]]:[r.lo[0],r.hi[0],r.lo[1],r.hi[1]];
     cur[+t.dataset.ri]=t.value===''?null:+t.value;S.ref[r.h]=cur;rSig();}
   if(t.dataset.accRole){const em=t.dataset.accRole,role=t.value;
-    ACCESS.admins=ACCESS.admins.filter(x=>x!==em);ACCESS.users=ACCESS.users.filter(x=>x!==em);
-    (role==='admin'?ACCESS.admins:ACCESS.users).push(em);saveAccess('Changed '+em+' to '+role);return}
+    addAccess(em,role);saveAccess('Changed '+em+' to '+role);return}
   if(t.dataset.ov){const o=S.ovr[t.dataset.ov];S.ovr[t.dataset.ov]=+t.value||0;audit('Settings','Overall TAT — pax '+TIERN[t.dataset.ov],'working days',o,S.ovr[t.dataset.ov]);}
   if(t.dataset.t){const o=S.tat[t.dataset.t][t.dataset.c];S.tat[t.dataset.t][t.dataset.c]=+t.value||0;audit('Settings','TAT '+CATN[t.dataset.c]+' — pax '+TIERN[t.dataset.t],'days',o,S.tat[t.dataset.t][t.dataset.c]);}
   if(t.dataset.w){audit('Settings','Working days only — '+CATN[t.dataset.w],'',!t.checked?'yes':'no',t.checked?'yes':'no');S.wd[t.dataset.w]=t.checked;}
@@ -679,10 +695,14 @@ $('sv').onclick=()=>dlBlob('APE_Hub_backup_'+F(new Date())+'.json',JSON.stringif
 $('ld').onchange=async e=>{const f=e.target.files[0];if(!f)return;
   try{Object.assign(S,JSON.parse(await f.text()));init();audit('Backup loaded',f.name);alert('Backup loaded.')}catch{alert('That file is not a valid backup.')}
   e.target.value='';};
+function showTab(t){
+  document.querySelectorAll('aside nav button').forEach(x=>x.classList.toggle('on',x.dataset.t===t));
+  document.querySelectorAll('section').forEach(x=>x.classList.toggle('on',x.id===t));
+}
 document.querySelectorAll('aside nav button').forEach(b=>b.onclick=()=>{
   document.querySelectorAll('aside nav button').forEach(x=>x.classList.remove('on'));
   document.querySelectorAll('section').forEach(x=>x.classList.remove('on'));
-  b.classList.add('on');$(b.dataset.t).classList.add('on');if(b.dataset.t==='log')rLog();
+  showTab(b.dataset.t);if(b.dataset.t==='log')rLog();
 });
 
 $('tog').onclick=()=>{document.body.classList.toggle('nav-off');$('tog').textContent=document.body.classList.contains('nav-off')?'▶':'◀'};
@@ -800,6 +820,7 @@ function sfChem(d,k){
   SF_REF.filter(r=>r.g==='chem').forEach(r=>{const f=sfFlag(r,c[r.h],k);if(f)out.push(`${r.l} ${c[r.h]} (${f})`)});
   return out.length?out.join('; '):sfNone;
 }
+const sfOneToFour=v=>{const m=sfMax(v);return m!=null&&m>=1&&m<=4};
 function sfUa(d,k){
   if(!d||!d.ua)return '';
   const u=d.ua, out=[];
@@ -809,8 +830,8 @@ function sfUa(d,k){
   if(/many/i.test(u['Uric acid']||''))out.push('Uric acid crystals MANY');
   if(/few|many/i.test(u['Trichomonas']||''))out.push(`Trichomonas vaginalis ${u['Trichomonas']}`);
   if(/many/i.test(u['Yeast cells']||''))out.push('Yeast cells MANY');
-  if(sfMax(u['Hyaline cast (/LPF)'])>0)out.push(`Hyaline casts ${u['Hyaline cast (/LPF)']}`);
-  if(sfMax(u['Fine granular cast (/LPF)'])>0)out.push(`Fine granular casts ${u['Fine granular cast (/LPF)']}`);
+  if(sfOneToFour(u['Hyaline cast (/LPF)']))out.push(`Hyaline casts ${u['Hyaline cast (/LPF)']}`);
+  if(sfOneToFour(u['Fine granular cast (/LPF)']))out.push(`Fine granular casts ${u['Fine granular cast (/LPF)']}`);
   return out.length?out.join('; '):sfNone;
 }
 function sfStool(d){
@@ -886,7 +907,7 @@ function rSig(){
     .map(([l,v])=>`<div class="card"><small>${l}</small><b>${v}</b></div>`).join('');
   const inp=(x,f)=>`<input value="${esc(x[f])}" data-mid="${esc(x.id)}" data-mf="${f}" style="width:130px">`;
   $('sfTab').innerHTML='<thead><tr><th>SN</th><th>Name</th><th>CBC</th><th>CHEMISTRY</th><th>URINALYSIS</th><th>FECALYSIS</th><th>SEROLOGY</th><th>X-RAY</th><th>ECG</th><th>PAP SMEAR</th><th>DRUG TEST</th></tr></thead><tbody>'+
-    (rows.length?rows.map(x=>`<tr><td>${esc(x.sn)}</td><td>${esc(x.name)}</td><td>${esc(x.cbc)}</td><td>${esc(x.chem)}</td><td>${esc(x.ua)}</td><td>${esc(x.stool)}</td><td>${inp(x,'serology')}</td><td>${esc(x.xray)}</td><td>${esc(x.ecg)}</td><td>${inp(x,'pap')}</td><td>${inp(x,'drug')}</td></tr>`).join('')
+    (rows.length?rows.map(x=>`<tr><td>${esc(x.sn)}</td><td>${esc(x.name)}</td><td class="${x.cbc===sfNone?'nosig':''}">${esc(x.cbc)}</td><td class="${x.chem===sfNone?'nosig':''}">${esc(x.chem)}</td><td class="${x.ua===sfNone?'nosig':''}">${esc(x.ua)}</td><td class="${x.stool===sfNone?'nosig':''}">${esc(x.stool)}</td><td>${inp(x,'serology')}</td><td class="${x.xray===sfNone?'nosig':''}">${esc(x.xray)}</td><td class="${x.ecg===sfNone?'nosig':''}">${esc(x.ecg)}</td><td>${inp(x,'pap')}</td><td>${inp(x,'drug')}</td></tr>`).join('')
       :'<tr><td colspan="11" class="mut">No lab results for this company yet. Upload the CSV files above.</td></tr>')+'</tbody>';
 }
 $('sfCo').onchange=()=>{
@@ -945,15 +966,57 @@ async function sfIngest(files,expect){
 }
 $('sfUp').onchange=e=>{sfIngest([...e.target.files]);e.target.value=''};
 document.querySelectorAll('[data-sfup]').forEach(inp=>inp.onchange=e=>{sfIngest([...e.target.files],inp.dataset.sfup);e.target.value=''});
-$('sfx').onclick=()=>{
+const sfHead=co=>[['Company:',co],['Address:',$('sfAddr').value],['Date:',$('sfDate').value]];
+const SF_HEAD=['','SN','Name','CBC','CHEMISTRY','URINALYSIS','FECALYSIS','SEROLOGY','X-RAY','ECG','PAP SMEAR','DRUG TEST'];
+// Patients with at least one significant finding (manual entries alone do not count)
+const sfFlagged=rows=>rows.filter(x=>sfCats.some(k=>x[k]&&x[k]!==sfNone));
+const SF_BORDER={top:{style:'thin'},left:{style:'thin'},bottom:{style:'thin'},right:{style:'thin'}};
+async function sfExcel(co,rows){
+  const name=`Summary_of_Significant_Findings_${sfSlug(co)}.xlsx`;
+  if(typeof ExcelJS==='undefined'){
+    alert('The Excel formatting library did not load (offline?). The file will download without the grey highlights.');
+    const aoa=[...sfHead(co),[],['SUMMARY OF SIGNIFICANT FINDINGS'],[],SF_HEAD,...rows.map((x,i)=>[i+1,x.sn,x.name,x.cbc,x.chem,x.ua,x.stool,x.serology,x.xray,x.ecg,x.pap,x.drug])];
+    xl(name,[['Summary Report',aoa]]);return;
+  }
+  const wb=new ExcelJS.Workbook(), ws=wb.addWorksheet('Summary Report');
+  [5,7,28,42,30,34,34,24,34,30,22,22].forEach((w,i)=>ws.getColumn(i+1).width=w);
+  sfHead(co).forEach(r=>ws.addRow(r));
+  ws.addRow([]);
+  ws.addRow(['SUMMARY OF SIGNIFICANT FINDINGS']).font={bold:true,size:12};
+  ws.addRow([]);
+  const hr=ws.addRow(SF_HEAD); hr.font={bold:true};
+  hr.eachCell(c=>{c.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFD9E8B8'}};c.border=SF_BORDER});
+  rows.forEach((x,i)=>{
+    const r=ws.addRow([i+1,x.sn,x.name,x.cbc,x.chem,x.ua,x.stool,x.serology,x.xray,x.ecg,x.pap,x.drug]);
+    r.eachCell((c,col)=>{
+      c.alignment={wrapText:true,vertical:'top'}; c.border=SF_BORDER;
+      if(col>=4&&col<=10&&c.value===sfNone)c.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFE5E7EB'}};
+    });
+  });
+  const buf=await wb.xlsx.writeBuffer();
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}));
+  a.download=name; a.click();
+}
+function sfPdf(co,rows){
+  const cell=(v,grey)=>`<td class="${grey&&v===sfNone?'nosig':''}">${esc(v)}</td>`;
+  $('sfPrint').innerHTML=`<div>${sfHead(co).map(([l,v])=>`<div><b>${esc(l)}</b> ${esc(v)}</div>`).join('')}</div>`+
+    `<h3 style="margin:10px 0">SUMMARY OF SIGNIFICANT FINDINGS</h3>`+
+    `<table class="pt"><thead><tr>${SF_HEAD.map(x=>`<th>${esc(x)}</th>`).join('')}</tr></thead><tbody>`+
+    rows.map((x,i)=>`<tr><td>${i+1}</td><td>${esc(x.sn)}</td><td>${esc(x.name)}</td>`+
+      cell(x.cbc,1)+cell(x.chem,1)+cell(x.ua,1)+cell(x.stool,1)+cell(x.serology,0)+cell(x.xray,1)+cell(x.ecg,1)+cell(x.pap,0)+cell(x.drug,0)+'</tr>').join('')+
+    `</tbody></table>`;
+  window.print();
+}
+function sfPick(){
   const co=$('sfCo').value;
-  if(!co){alert('Select a company first.');return}
-  const rows=sigRows(co);
-  const aoa=[['Company:',co],['Address:',$('sfAddr').value],['Date:',$('sfDate').value],[],['SUMMARY OF SIGNIFICANT FINDINGS'],[],
-    ['','SN','Name','CBC','CHEMISTRY','URINALYSIS','FECALYSIS','SEROLOGY','X-RAY','ECG','PAP SMEAR','DRUG TEST'],
-    ...rows.map((x,i)=>[i+1,x.sn,x.name,x.cbc,x.chem,x.ua,x.stool,x.serology,x.xray,x.ecg,x.pap,x.drug])];
-  xl(`Summary_of_Significant_Findings_${sfSlug(co)}.xlsx`,[['Summary Report',aoa]]);
-};
+  if(!co){alert('Select a company first.');return null}
+  const rows=sfFlagged(sigRows(co));
+  if(!rows.length){alert('No patients with significant findings for this company.');return null}
+  return {co,rows};
+}
+$('sfx').onclick=()=>{const p=sfPick();if(p)sfExcel(p.co,p.rows)};
+$('sfpdf').onclick=()=>{const p=sfPick();if(p)sfPdf(p.co,p.rows)};
 function sfListen(){
   if(unsubLab)unsubLab();
   unsubLab=onSnapshot(collection(db,'labs'),snap=>{
@@ -971,6 +1034,7 @@ let unsubState=null,unsubAud=null,unsubAdm=null;
 function stopSync(){[unsubState,unsubAud,unsubAdm,unsubLab].forEach(u=>{if(u)u()});unsubState=unsubAud=unsubAdm=null;unsubLab=null;synced=false;lastSaved='';lastAdmin='';ADMAP={}}
 function startSync(){
   stopSync();
+  if(CUR_ROLE==='biller')return;   // billers do not read hub data; the billing module listens to its own collections
   unsubState=onSnapshot(STATE_REF,snap=>{
     if(snap.metadata.hasPendingWrites)return;
     if(!snap.exists()&&snap.metadata.fromCache)return;
@@ -1000,13 +1064,16 @@ function roleFor(e){
   if(e===OWNER_EMAIL)return 'admin';
   if(ACCESS.admins.includes(e))return 'admin';
   if(ACCESS.users.includes(e))return 'user';
+  if(ACCESS.billers.includes(e))return 'biller';
   return null;
 }
+function removeAccess(em){ACCESS.admins=ACCESS.admins.filter(x=>x!==em);ACCESS.users=ACCESS.users.filter(x=>x!==em);ACCESS.billers=ACCESS.billers.filter(x=>x!==em)}
+function addAccess(em,role){removeAccess(em);({admin:ACCESS.admins,user:ACCESS.users,biller:ACCESS.billers})[role].push(em)}
 function stopAccess(){if(accessUnsub){accessUnsub();accessUnsub=null}}
 function denyAccess(msg){stopSync();stopAccess();$('lmsg').textContent=msg;signOut(auth)}
 // Saves the registered-users list; every admin change is logged
 function saveAccess(msg){
-  setDoc(ACCESS_REF,{admins:[...new Set(ACCESS.admins)],users:[...new Set(ACCESS.users)]})
+  setDoc(ACCESS_REF,{admins:[...new Set(ACCESS.admins)],users:[...new Set(ACCESS.users)],billers:[...new Set(ACCESS.billers)]})
     .then(()=>{audit('Access changed','Registered users',msg,'','');$('sync').textContent='Access saved'})
     .catch(e=>{$('sync').textContent='Access save failed: '+(e.code||e.message)});
 }
@@ -1016,14 +1083,17 @@ onAuthStateChanged(auth,user=>{
   stopAccess();
   accessUnsub=onSnapshot(ACCESS_REF,snap=>{
     const d=snap.data()||{};
-    ACCESS={admins:(d.admins||[]).map(x=>x.toLowerCase()),users:(d.users||[]).map(x=>x.toLowerCase())};
+    ACCESS={admins:(d.admins||[]).map(x=>x.toLowerCase()),users:(d.users||[]).map(x=>x.toLowerCase()),billers:(d.billers||[]).map(x=>x.toLowerCase())};
     const role=roleFor(CURRENT_EMAIL);
     if(!role){denyAccess('The account '+CURRENT_EMAIL+' has no access. Ask the administrator to add it.');return}
     IS_ADMIN=role==='admin';
-    document.body.classList.toggle('user',!IS_ADMIN);
+    CUR_ROLE=role;
+    document.body.classList.toggle('user',role==='user');
+    document.body.classList.toggle('biller',role==='biller');
     $('who').textContent=CURRENT_EMAIL+(IS_ADMIN?' (admin)':'');
     document.body.classList.remove('locked');
     if(role!==LAST_ROLE){LAST_ROLE=role;startSync()}
+    if(role==='biller')showTab('billing');
     renderSet();
   },err=>denyAccess('Your account could not be verified. Ask the administrator to add it, then sign in again.'));
 });

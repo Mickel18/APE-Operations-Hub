@@ -2,7 +2,7 @@ rules_version = '2';
 
 // Paste in Firebase Console > Firestore Database > Rules > Publish.
 // OWNER_EMAIL below must equal OWNER_EMAIL in index.html.
-// All other accounts are managed inside the app: Settings > Registered users.
+// All other accounts are managed in the app: Settings > Registered users (admin, user, biller).
 service cloud.firestore {
   match /databases/{database}/documents {
 
@@ -10,32 +10,33 @@ service cloud.firestore {
       return request.auth != null && request.auth.token.email_verified == true;
     }
 
+    // The owner account is always an admin
     function isOwner() {
-      return signedIn() && request.auth.token.email == 'mickelp.panigua@gmail.com';
+      return signedIn() && request.auth.token.email == 'owner@company.com';
     }
 
-    // Reads the registered-users list kept in hub/access ({ admins: [...], users: [...] })
+    // Registered-users list in hub/access: { admins: [...], users: [...], billers: [...] }
     function listed(field) {
-      return request.auth.token.email in get(/databases/$(database)/documents/hub/access).data[field];
+      return request.auth.token.email in get(/databases/$(database)/documents/hub/access).data.get(field, []);
     }
 
-    function isAdmin() {
-      return isOwner() || (signedIn() && listed('admins'));
-    }
+    function isAdmin()  { return isOwner() || (signedIn() && listed('admins')); }
+    // Staff: results, feedback, directory, lab results and settings (not billing)
+    function isStaff()  { return isAdmin() || (signedIn() && listed('users')); }
+    // Billers: billing only
+    function isBiller() { return isAdmin() || (signedIn() && listed('billers')); }
+    // Any registered account
+    function isListed() { return isStaff() || isBiller(); }
 
-    function isUser() {
-      return isAdmin() || (signedIn() && listed('users'));
-    }
-
-    // Registered users: any listed account can read the list; only admins can change it
+    // Registered users: any registered account can read the list; only admins can change it
     match /hub/access {
-      allow read: if isUser();
+      allow read: if isListed();
       allow write: if isAdmin();
     }
 
     // Working data: results, directory, personnel, holidays, TAT and package settings
     match /hub/state {
-      allow read, write: if isUser();
+      allow read, write: if isStaff();
     }
 
     // Feedback ratings and forms received: admins only
@@ -43,17 +44,37 @@ service cloud.firestore {
       allow read, write: if isAdmin();
     }
 
-    // Lab results and significant findings: listed users can read, upload and enter manual results
+    // Lab results and significant findings
     match /labs/{labId} {
-      allow read, write: if isUser();
+      allow read, write: if isStaff();
     }
 
-    // Activity log: listed users can add entries; only admins can read them.
-    // Entries cannot be edited or deleted.
+    // Activity log: any registered account can add entries; only admins can read them
     match /audit/{entryId} {
       allow read: if isAdmin();
-      allow create: if isUser();
+      allow create: if isListed();
       allow update, delete: if false;
+    }
+
+    // Billing settings: letterhead, provider list, packages, signatures. Billers read; admins change.
+    match /billing_settings/{docId} {
+      allow read: if isBiller();
+      allow write: if isAdmin();
+    }
+
+    // Billing companies (rosters and billing runs). Billers can edit everything except prices;
+    // admins can change prices and delete companies.
+    match /billing_companies/{coId} {
+      allow read, create: if isBiller();
+      allow update: if isAdmin() ||
+        (isBiller() && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['prices']));
+      allow delete: if isAdmin();
+
+      // Archived statements
+      match /archive/{archId} {
+        allow read, create, update: if isBiller();
+        allow delete: if isAdmin();
+      }
     }
   }
 }

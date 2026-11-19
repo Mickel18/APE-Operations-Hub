@@ -2,6 +2,12 @@
 
 All notable changes to APE Operations Hub are listed here, newest first.
 
+## v24
+- Third role: biller. Billers see only the Billing tab.
+- Registered users list has three roles: admin, user, biller.
+- Billing rules added (`billing_companies`, `billing_settings`): billers can edit billing data but not prices; only admins can delete companies and change settings.
+- Billing tab placeholder, ready for the billing module (phase 2).
+
 ## v23
 - Significant Findings tab: upload the lab CSV exports (patient master, CBC, CHEM, URINALYSIS, STOOL, X-RAY) together; each file is recognized from its headers.
 - Summary per patient in the workbook's Summary Report format: CBC, chemistry, urinalysis, fecalysis, serology, X-ray and ECG, with the significant-findings rules from the workbook Instructions tab.
