@@ -252,8 +252,7 @@ body.user [data-t="billing"],body.user #billing{display:none}
 
 <!-- BILLING (phase 2 builds the billing screens here) -->
 <section id="billing">
-  <div class="card" style="max-width:720px"><h3 style="margin-top:0">Billing</h3>
-    <p>The billing module is being moved into this platform. Billers and admins will work here.</p></div>
+  <iframe id="billingFrame" title="Billing" style="width:100%;height:calc(100vh - 40px);border:0;background:#fff;border-radius:6px"></iframe>
 </section>
 
 <!-- SETTINGS -->
@@ -283,7 +282,7 @@ const firebaseConfig = {
 };
 // The owner account is always an admin. It must match OWNER_EMAIL in firestore.rules.
 // All other accounts are managed in Settings → Registered users.
-const OWNER_EMAIL = 'mickelp.panigua@gmail.com';
+const OWNER_EMAIL = 'owner@company.com';
 
 const fbApp = initializeApp(firebaseConfig);
 const auth = getAuth(fbApp);
@@ -644,6 +643,13 @@ $('lists').onchange=e=>{const t=e.target;
 const newId=()=>Math.random().toString(36).slice(2,10)+Date.now().toString(36);
 // Feedback ratings and forms received live in hub/admin; they are merged back into each APE on load
 function applyAdmin(){S.res.forEach(r=>{const a=ADMAP[r.id];if(a){r.fb=a.fb||[];r.forms=a.forms||0}})}
+let lastRefs='';
+function refsOf(){
+  const m=new Map();
+  S.dir.forEach(r=>{const n=(r.co||'').trim();if(n)m.set(n,{name:n,address:r.addr||'',paymode:r.pay||'',hmo:r.hmo||''})});
+  S.res.forEach(r=>{const n=(r.co||'').trim();if(n&&!m.has(n))m.set(n,{name:n,address:'',paymode:'',hmo:''})});
+  return [...m.values()].sort((a,b)=>a.name.localeCompare(b.name));
+}
 function save(){clearTimeout(saveTimer);saveTimer=setTimeout(()=>{
   if(!synced||document.body.classList.contains('locked'))return;
   const {audit,...rest}=S;
@@ -651,6 +657,9 @@ function save(){clearTimeout(saveTimer);saveTimer=setTimeout(()=>{
   if(stateTxt!==lastSaved){lastSaved=stateTxt;
     setDoc(STATE_REF,JSON.parse(stateTxt)).then(()=>{$('sync').textContent='Saved '+new Date().toLocaleTimeString()})
       .catch(e=>{$('sync').textContent='Save failed: '+(e.code||e.message)})}
+  const refs=refsOf(), refTxt=canon({items:refs});
+  if(refTxt!==lastRefs){lastRefs=refTxt;
+    setDoc(doc(db,'billing_refs','companies'),{items:refs}).catch(e=>{$('sync').textContent='Billing link save failed: '+(e.code||e.message)})}
   if(IS_ADMIN){
     const admTxt=canon({items:S.res.map(r=>({id:r.id,fb:r.fb||[],forms:r.forms||0}))});
     if(admTxt!==lastAdmin){lastAdmin=admTxt;
@@ -1093,10 +1102,11 @@ onAuthStateChanged(auth,user=>{
     $('who').textContent=CURRENT_EMAIL+(IS_ADMIN?' (admin)':'');
     document.body.classList.remove('locked');
     if(role!==LAST_ROLE){LAST_ROLE=role;startSync()}
+    if(role!=='user'&&!$('billingFrame').getAttribute('src'))$('billingFrame').src='billing/index.html?role='+role;
     if(role==='biller')showTab('billing');
     renderSet();
   },err=>denyAccess('Your account could not be verified. Ask the administrator to add it, then sign in again.'));
-});
+});window.addEventListener('message',e=>{if(e.origin===location.origin&&e.data&&e.data.type==='hub-signout')signOut(auth)});
 init();
 </script>
 </body>

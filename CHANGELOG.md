@@ -2,6 +2,12 @@
 
 All notable changes to APE Operations Hub are listed here, newest first.
 
+## v25
+- Billing module integrated into the Billing tab (`billing/index.html`), using the hub's sign-in and Firebase project.
+- Billers see billing only; prices and company deletion are admin-only in the module.
+- Billing companies are linked to APE companies from the Client Directory.
+- One-time admin tool copies data from the old ape-billing project.
+
 ## v24
 - Third role: biller. Billers see only the Billing tab.
 - Registered users list has three roles: admin, user, biller.

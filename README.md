@@ -68,4 +68,4 @@ Changes are listed in [CHANGELOG.md](CHANGELOG.md). Commit each new version with
 
 ## Contact
 
-Maintainer: [Mickel18]
+Maintainer: [ADD NAME AND EMAIL]

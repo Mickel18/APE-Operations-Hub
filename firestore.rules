@@ -12,7 +12,7 @@ service cloud.firestore {
 
     // The owner account is always an admin
     function isOwner() {
-      return signedIn() && request.auth.token.email == 'mickelp.panigua@gmail.com';
+      return signedIn() && request.auth.token.email == 'owner@company.com';
     }
 
     // Registered-users list in hub/access: { admins: [...], users: [...], billers: [...] }
@@ -54,6 +54,12 @@ service cloud.firestore {
       allow read: if isAdmin();
       allow create: if isListed();
       allow update, delete: if false;
+    }
+
+    // APE companies for linking billing (name, address, payment mode, HMO contact). Staff write; billers read.
+    match /billing_refs/{docId} {
+      allow read: if isBiller();
+      allow write: if isStaff();
     }
 
     // Billing settings: letterhead, provider list, packages, signatures. Billers read; admins change.
