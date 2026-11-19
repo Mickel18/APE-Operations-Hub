@@ -20,7 +20,7 @@ The owner is always an admin and is the only account that can make the first cha
 
 1. In `index.html`:
    ```js
-   const OWNER_EMAIL = 'mickelp.panigua@gmail.com';
+   const OWNER_EMAIL = 'owner@company.com';
    ```
 2. In `firestore.rules`, in the `isOwner()` function, the same address.
 
@@ -44,13 +44,15 @@ Changes take effect straight away. Removing an account signs that person out the
 
 | Area | Admin | User |
 |---|---|---|
-| Results Tracker up to Demographic report date | Yes | Yes |
+| Results Tracker up to Demographic report date | Yes | Yes (users only) |
 | Status log, forms received, feedback columns | Yes | No |
 | Feedback Analysis tab | Yes | No |
 | Activity Log tab | Yes | No |
 | Settings: Registered users, packages, client directory data, overall and per-test TAT | Yes | No |
 | Settings: personnel and holidays | Yes | Yes |
-| Client Directory, backup | Yes | Yes |
+| Client Directory, backup | Yes | No |
+| Billing (phase 2: rosters, billing runs, statements) | Yes | Yes (billers) |
+| Billing: prices, letterhead, signatures, deleting companies | Yes | No |
 
 ## 8. Limits to know
 - **Status log:** Users can't see it on screen, but it is stored in the readable working data. A technical user could see it. Moving status history into the admin document would fix this.
@@ -59,3 +61,9 @@ Changes take effect straight away. Removing an account signs that person out the
 - **Stale screens:** A user who keeps an old screen open may save older data over a newer change. Ask users to keep the sidebar sync line visible.
 - **Record size:** Firestore limits each record to 1 MB. Check the size as the number of APEs grows.
 - **Offline:** Saving needs an internet connection. Without one, the sidebar shows "Save failed".
+
+## Billing module (phases 2–4)
+- The billing module lives in `billing/index.html` and runs inside the Billing tab. It uses the same Firebase project and the hub's sign-in.
+- Its data is stored in `billing_companies` and `billing_settings`. The hub publishes APE companies to `billing_refs` for billers to link to.
+- **Copy from ape-billing (admin, one time):** Data & Storage → Copy data. You sign in to the old project in a pop-up. The old project's Authorized domains must include the hub's address too.
+- After the copy is checked, remove the copy card and `LEGACY_CONFIG` from `billing/index.html`, then delete the `ape-billing` Firebase project.

@@ -12,7 +12,7 @@ service cloud.firestore {
 
     // The owner account is always an admin
     function isOwner() {
-      return signedIn() && request.auth.token.email == 'mickelp.panigua@gmail.com';
+      return signedIn() && request.auth.token.email == 'owner@company.com';
     }
 
     // Registered-users list in hub/access: { admins: [...], users: [...], billers: [...] }
